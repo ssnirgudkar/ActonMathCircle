@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acton Math Circle — Nim</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:       #1a1a2e;
+    --paper:     #faf8f3;
+    --accent:    #2e6b9e;
+    --accent2:   #c2692a;
+    --rule:      #d6d0c4;
+    --pale:      #f0ece3;
+    --game-col:  #e65100;
+    --game-bg:   #fff3e0;
+    --game-bdr:  #ffcc80;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 0 0 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 52px 40px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '∑ ∞ π √ ∂ ∫';
+    position: absolute;
+    right: 40px; top: 28px;
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    color: rgba(255,255,255,0.08);
+    letter-spacing: 14px;
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    max-width: 620px;
+    margin-bottom: 14px;
+  }
+  header h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: #a8c8e8;
+  }
+  header p.subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    max-width: 480px;
+  }
+
+  /* ── BREADCRUMB ── */
+  .breadcrumb {
+    padding: 14px 40px;
+    background: var(--pale);
+    border-bottom: 1px solid var(--rule);
+    font-size: 12px;
+    color: #888;
+  }
+  .breadcrumb a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 6px; color: #ccc; }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    background: var(--game-bg);
+    color: var(--game-col);
+    border: 1.5px solid var(--game-bdr);
+    margin-bottom: 18px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 52px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--game-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .section-header .concept {
+    margin-left: auto;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── PROBLEM CARD ── */
+  .problem-card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--game-col);
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .problem-num {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--rule);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 32px;
+  }
+  .problem-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .core-setup {
+    font-size: 14.5px;
+    color: #333;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .variations-label {
+    font-size: 10.5px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #999;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .variations {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .variations li {
+    font-size: 13.5px;
+    color: #444;
+    padding-left: 18px;
+    position: relative;
+  }
+  .variations li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #bbb;
+    font-size: 12px;
+    top: 2px;
+  }
+
+  /* ══════════════════════════════════════
+     NIM GAME WIDGET
+  ══════════════════════════════════════ */
+
+  .game-widget {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .game-widget-header {
+    background: var(--ink);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .game-widget-header .widget-title {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .game-widget-header .widget-subtitle {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* config bar */
+  .config-bar {
+    background: var(--pale);
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+  .config-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+  }
+  .config-group label {
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .pile-count-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--rule);
+    background: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    transition: all 0.15s;
+    line-height: 1;
+    padding: 0;
+  }
+  .pile-count-btn:hover { border-color: var(--game-col); color: var(--game-col); }
+  .pile-count-display {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .misere-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
+    user-select: none;
+  }
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--rule);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle-switch.on { background: var(--game-col); }
+  .toggle-knob {
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(16px); }
+
+  .reset-btn {
+    margin-left: auto;
+    padding: 6px 16px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.15s;
+  }
+  .reset-btn:hover { opacity: 0.8; }
+
+  /* status bar */
+  .status-bar {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 50px;
+  }
+  .player-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .player-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .player-dot.p2 { background: var(--accent2); }
+  .player-label {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .turn-label {
+    font-size: 12px;
+    color: #888;
+  }
+  .status-msg {
+    margin-left: auto;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+  }
+  .status-msg.win {
+    color: var(--game-col);
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+  }
+
+  /* nim board */
+  .nim-board {
+    padding: 28px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .pile-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .pile-label {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #aaa;
+    width: 52px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+  .pile-label span {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: #ccc;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .stones-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    flex: 1;
+    min-height: 42px;
+    align-items: center;
+  }
+
+  .stone {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6b8cba, #2e4e7a);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+    position: relative;
+  }
+  .stone:hover:not(.removed):not(.game-over) {
+    transform: scale(1.12);
+    box-shadow: 0 3px 10px rgba(46,107,158,0.4);
+    border-color: #a8c8e8;
+  }
+  .stone.selected {
+    background: radial-gradient(circle at 35% 35%, #e89a5a, #c2692a);
+    border-color: var(--accent2);
+    transform: scale(1.08);
+    box-shadow: 0 3px 10px rgba(194,105,42,0.4);
+  }
+  .stone.removed {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.3);
+  }
+  .stone.game-over { cursor: default; }
+
+  .pile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 6px;
+  }
+  .take-btn {
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1.5px solid var(--rule);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .take-btn:hover:not(:disabled) {
+    border-color: var(--game-col);
+    color: var(--game-col);
+    background: var(--game-bg);
+  }
+  .take-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .take-btn.confirm {
+    background: var(--game-col);
+    border-color: var(--game-col);
+    color: #fff;
+  }
+  .take-btn.confirm:hover:not(:disabled) {
+    background: #bf4500;
+    border-color: #bf4500;
+    color: #fff;
+  }
+
+  /* xor hint */
+  .hint-row {
+    padding: 12px 24px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px dashed var(--rule);
+    flex-wrap: wrap;
+  }
+  .hint-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #bbb;
+    font-weight: 500;
+  }
+  .xor-display {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    color: #888;
+  }
+  .xor-display .xor-val {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .xor-display .xor-val.zero { color: var(--game-col); }
+  .hint-toggle {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    text-decoration: underline;
+    letter-spacing: 0.3px;
+  }
+
+  /* analysis panel */
+  .analysis-panel {
+    background: var(--pale);
+    border-top: 1px solid var(--rule);
+    padding: 16px 24px;
+    font-size: 13px;
+    color: #555;
+    display: none;
+  }
+  .analysis-panel.visible { display: block; }
+  .analysis-panel p { margin-bottom: 6px; }
+  .analysis-panel strong { color: var(--ink); }
+
+  /* history */
+  .move-history {
+    padding: 0 24px 20px;
+    border-top: 1px solid var(--rule);
+  }
+  .history-label {
+    font-size: 10.5px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #bbb;
+    font-weight: 500;
+    padding: 14px 0 8px;
+  }
+  .history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .history-chip {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--pale);
+    color: #666;
+    border: 1px solid var(--rule);
+  }
+  .history-chip.p1 { border-color: #90b8d8; color: var(--accent); }
+  .history-chip.p2 { border-color: #e8b88a; color: var(--accent2); }
+
+  /* footer */
+  footer {
+    max-width: 860px;
+    margin: 60px auto 0;
+    padding: 24px 40px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 600px) {
+    header, main { padding-left: 20px; padding-right: 20px; }
+    .breadcrumb { padding-left: 20px; padding-right: 20px; }
+    .section-header .concept { display: none; }
+    .stone { width: 30px; height: 30px; }
+    .config-bar { padding: 12px 16px; }
+    .nim-board { padding: 20px 16px; }
+    .hint-row, .move-history, .status-bar { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Acton Math Circle · Grades 5–7</div>
+  <h1>Nim — <em>The Stone Game</em></h1>
+  <p class="subtitle">Two players, two piles of stones. One rule: take as many as you like — but from one pile only. Who's forced to take the last stone?</p>
+</header>
+
+<div class="breadcrumb">
+  <a href="index.html">← All Explorations</a>
+  <span>·</span>
+  Problem 4
+  <span>·</span>
+  Game Theory
+</div>
+
+<main>
+
+  <div class="section-header">
+    <div class="section-icon">♟</div>
+    <h2>Game Theory</h2>
+    <span class="concept">Who wins — and why?</span>
+  </div>
+
+  <div class="tag">♟ Game Theory</div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num">4</span>
+      <span class="problem-title">Nim</span>
+    </div>
+    <div class="core-setup">
+      Two piles of stones — start simple with 3 and 5. Players alternate taking any number of stones from one pile (at least one). The player who takes the last stone wins. Explore: which starting positions are losing positions for the first player?
+    </div>
+
+  </div>
+
+  <!-- ══ INTERACTIVE GAME ══ -->
+
+  <div class="game-widget">
+
+    <div class="game-widget-header">
+      <div>
+        <div class="widget-title">Play Nim</div>
+        <div class="widget-subtitle">Interactive · Two players · Same screen</div>
+      </div>
+    </div>
+
+    <!-- config -->
+    <div class="config-bar">
+      <div class="config-group">
+        <label>Piles:</label>
+        <button class="pile-count-btn" id="pileDown">−</button>
+        <span class="pile-count-display" id="pileCountDisplay">2</span>
+        <button class="pile-count-btn" id="pileUp">+</button>
+      </div>
+      <div class="config-group" style="gap:14px; flex-wrap:wrap;">
+        <label>Sizes:</label>
+        <span id="pileSizeControls" style="display:flex;gap:10px;flex-wrap:wrap;"></span>
+      </div>
+      <label class="misere-toggle" id="misereToggle" title="Misère: last to take loses">
+        <div class="toggle-switch" id="misereSwitch"><div class="toggle-knob"></div></div>
+        Misère (last takes = loses)
+      </label>
+      <button class="reset-btn" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <!-- status -->
+    <div class="status-bar" id="statusBar">
+      <div class="player-badge">
+        <div class="player-dot" id="playerDot"></div>
+        <span class="player-label" id="playerLabel">Player 1's turn</span>
+      </div>
+      <span class="turn-label" id="turnLabel">Click stones to select, then confirm</span>
+      <span class="status-msg" id="statusMsg"></span>
+    </div>
+
+    <!-- board -->
+    <div class="nim-board" id="nimBoard"></div>
+
+    <!-- xor hint -->
+    <div class="hint-row">
+      <span class="hint-label">Nim-sum (XOR)</span>
+      <span class="xor-display" id="xorDisplay">—</span>
+      <button class="hint-toggle" id="hintToggle">show analysis</button>
+    </div>
+
+    <!-- analysis -->
+    <div class="analysis-panel" id="analysisPanel">
+      <p id="analysisText"></p>
+      <p style="color:#999;font-size:12px;margin-top:4px;">The <strong>Nim-sum</strong> is the XOR (bitwise exclusive-or) of all pile sizes. A position is a <strong>losing position</strong> for the player about to move if and only if the Nim-sum equals 0.</p>
+    </div>
+
+    <!-- history -->
+    <div class="move-history">
+      <div class="history-label">Move history</div>
+      <div class="history-list" id="historyList"><span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span></div>
+    </div>
+
+  </div>
+
+  <!-- ══ DISCOVERY QUESTIONS ══ -->
+
+  <div class="section-header" style="margin-top:40px;">
+    <div class="section-icon">?</div>
+    <h2>Things to Discover</h2>
+    <span class="concept">Conjecture freely</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">①</span>
+      <span class="problem-title">Equal piles always lose</span>
+    </div>
+    <div class="core-setup">
+      Set both piles to the same size — try (2,2), (3,3), (4,4). Play a few rounds. What do you notice about who wins? Can you explain <em>why</em> equal piles are bad for the first player?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">②</span>
+      <span class="problem-title">Add a third pile</span>
+    </div>
+    <div class="core-setup">
+      Increase to 3 piles. Try (1,2,3) — is this a win or loss for Player 1? What about (1,3,5)? What about (2,3,4)? Build a small table and look for a pattern in which positions lose.
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">③</span>
+      <span class="problem-title">The Misère flip</span>
+    </div>
+    <div class="core-setup">
+      Toggle Misère mode (last to take loses). Does every position that was a win become a loss? Or is it more subtle? Try the same starting positions in both modes and compare.
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Acton Math Circle · Grades 5–7</span>
+  <span>Problem 4 of 10 · Game Theory</span>
+</footer>
+
+<script>
+(function() {
+
+  // ── STATE ──────────────────────────────────────────────────────
+  let pileCount   = 2;
+  let pileSizes   = [3, 5];
+  let piles       = [3, 5];        // current stone counts
+  let selected    = [-1, -1, -1];  // selected stone index per pile (-1 = none)
+  let activePile  = -1;            // which pile is being interacted with
+  let currentPlayer = 1;           // 1 or 2
+  let gameOver    = false;
+  let misere      = false;
+  let history     = [];
+  let showAnalysis = false;
+
+  // ── DOM REFS ──────────────────────────────────────────────────
+  const board         = document.getElementById('nimBoard');
+  const playerDot     = document.getElementById('playerDot');
+  const playerLabel   = document.getElementById('playerLabel');
+  const turnLabel     = document.getElementById('turnLabel');
+  const statusMsg     = document.getElementById('statusMsg');
+  const xorDisplay    = document.getElementById('xorDisplay');
+  const analysisPanel = document.getElementById('analysisPanel');
+  const analysisText  = document.getElementById('analysisText');
+  const historyList   = document.getElementById('historyList');
+  const hintToggle    = document.getElementById('hintToggle');
+  const resetBtn      = document.getElementById('resetBtn');
+  const pileDown      = document.getElementById('pileDown');
+  const pileUp        = document.getElementById('pileUp');
+  const pileCountDisp = document.getElementById('pileCountDisplay');
+  const pileSizeCtrl  = document.getElementById('pileSizeControls');
+  const misereToggle  = document.getElementById('misereToggle');
+  const misereSwitch  = document.getElementById('misereSwitch');
+
+  // ── HELPERS ───────────────────────────────────────────────────
+  function nimXor() {
+    return piles.reduce((acc, p) => acc ^ p, 0);
+  }
+
+  function totalStones() {
+    return piles.reduce((a, b) => a + b, 0);
+  }
+
+  function isLosingPosition() {
+    // Normal: XOR=0 is P-position (losing for player to move)
+    // Misere: same except when all piles ≤ 1, flip
+    const xor = nimXor();
+    if (!misere) return xor === 0;
+    const allSmall = piles.every(p => p <= 1);
+    if (allSmall) return xor !== 0; // in misere, last stone is bad
+    return xor === 0;
+  }
+
+  // ── BUILD PILE SIZE CONTROLS ──────────────────────────────────
+  function buildPileSizeControls() {
+    pileSizeCtrl.innerHTML = '';
+    for (let i = 0; i < pileCount; i++) {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:13px;';
+
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'color:#aaa;font-size:11px;letter-spacing:1px;text-transform:uppercase;';
+      lbl.textContent = ['A','B','C'][i] + ':';
+
+      const dec = document.createElement('button');
+      dec.className = 'pile-count-btn';
+      dec.textContent = '−';
+      dec.style.cssText = 'width:22px;height:22px;font-size:13px;';
+
+      const val = document.createElement('span');
+      val.style.cssText = 'font-family:Fraunces,serif;font-size:16px;font-weight:600;min-width:18px;text-align:center;';
+      val.textContent = pileSizes[i];
+
+      const inc = document.createElement('button');
+      inc.className = 'pile-count-btn';
+      inc.textContent = '+';
+      inc.style.cssText = 'width:22px;height:22px;font-size:13px;';
+
+      const idx = i;
+      dec.addEventListener('click', () => {
+        if (pileSizes[idx] > 1) { pileSizes[idx]--; val.textContent = pileSizes[idx]; resetGame(); }
+      });
+      inc.addEventListener('click', () => {
+        if (pileSizes[idx] < 12) { pileSizes[idx]++; val.textContent = pileSizes[idx]; resetGame(); }
+      });
+
+      wrap.appendChild(lbl);
+      wrap.appendChild(dec);
+      wrap.appendChild(val);
+      wrap.appendChild(inc);
+      pileSizeCtrl.appendChild(wrap);
+    }
+  }
+
+  // ── RENDER BOARD ──────────────────────────────────────────────
+  function renderBoard() {
+    board.innerHTML = '';
+    for (let p = 0; p < pileCount; p++) {
+      const row = document.createElement('div');
+      row.className = 'pile-row';
+
+      const lbl = document.createElement('div');
+      lbl.className = 'pile-label';
+      lbl.innerHTML = `Pile ${['A','B','C'][p]}<span>${piles[p]} stone${piles[p] !== 1 ? 's' : ''}</span>`;
+
+      const stonesArea = document.createElement('div');
+      stonesArea.className = 'stones-area';
+
+      for (let s = 0; s < pileSizes[p]; s++) {
+        const stone = document.createElement('div');
+        stone.className = 'stone';
+        if (s >= piles[p]) stone.classList.add('removed');
+        if (!gameOver && s < piles[p] && activePile === -1 || activePile === p) {
+          if (selected[p] !== -1 && s >= piles[p] - selected[p]) {
+            stone.classList.add('selected');
+          }
+        }
+        if (gameOver) stone.classList.add('game-over');
+
+        const pileIdx = p, stoneIdx = s;
+        stone.addEventListener('click', () => handleStoneClick(pileIdx, stoneIdx));
+        stonesArea.appendChild(stone);
+      }
+
+      // action buttons
+      const actions = document.createElement('div');
+      actions.className = 'pile-actions';
+
+      if (!gameOver && (activePile === -1 || activePile === p) && piles[p] > 0) {
+        if (activePile === p && selected[p] > 0) {
+          // confirm button
+          const confirm = document.createElement('button');
+          confirm.className = 'take-btn confirm';
+          confirm.textContent = `Take ${selected[p]}`;
+          confirm.addEventListener('click', () => confirmTake(p));
+          actions.appendChild(confirm);
+
+          // cancel
+          const cancel = document.createElement('button');
+          cancel.className = 'take-btn';
+          cancel.textContent = 'Cancel';
+          cancel.addEventListener('click', () => cancelSelection());
+          actions.appendChild(cancel);
+        } else if (activePile === -1) {
+          // take all shortcut
+          const takeAll = document.createElement('button');
+          takeAll.className = 'take-btn';
+          takeAll.textContent = 'Take all';
+          takeAll.addEventListener('click', () => takeAll_fn(p));
+          actions.appendChild(takeAll);
+        }
+      }
+
+      row.appendChild(lbl);
+      row.appendChild(stonesArea);
+      row.appendChild(actions);
+      board.appendChild(row);
+    }
+  }
+
+  // ── STONE CLICK ───────────────────────────────────────────────
+  function handleStoneClick(pileIdx, stoneIdx) {
+    if (gameOver) return;
+    if (piles[pileIdx] === 0) return;
+    if (activePile !== -1 && activePile !== pileIdx) return; // already chose a different pile
+
+    activePile = pileIdx;
+    // count how many stones from right are selected
+    // stoneIdx is 0-based from left; stones are shown left-to-right
+    // selecting stone at stoneIdx means taking all stones from stoneIdx to end
+    const countFromRight = piles[pileIdx] - stoneIdx;
+    // toggle: if same selection, deselect
+    if (selected[pileIdx] === countFromRight) {
+      selected[pileIdx] = 0;
+      if (selected[pileIdx] === 0) activePile = -1;
+    } else {
+      selected[pileIdx] = countFromRight;
+    }
+    renderBoard();
+    updateXor();
+  }
+
+  function takeAll_fn(pileIdx) {
+    if (gameOver || piles[pileIdx] === 0) return;
+    activePile = pileIdx;
+    selected[pileIdx] = piles[pileIdx];
+    renderBoard();
+    updateXor();
+  }
+
+  function confirmTake(pileIdx) {
+    if (gameOver || selected[pileIdx] <= 0) return;
+    const took = selected[pileIdx];
+    piles[pileIdx] -= took;
+
+    // record history
+    history.push({ player: currentPlayer, pile: ['A','B','C'][pileIdx], took });
+
+    // reset selection
+    selected = [-1, -1, -1].slice(0, pileCount).fill(0);
+    activePile = -1;
+
+    // check win condition
+    const total = totalStones();
+    if (total === 0) {
+      gameOver = true;
+      let winner;
+      if (misere) {
+        // last to take loses → current player loses
+        winner = currentPlayer === 1 ? 2 : 1;
+      } else {
+        winner = currentPlayer;
+      }
+      renderBoard();
+      updateXor();
+      updateStatus(winner);
+      renderHistory();
+      return;
+    }
+
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    renderBoard();
+    updateXor();
+    updateStatus(null);
+    renderHistory();
+  }
+
+  function cancelSelection() {
+    selected = [0, 0, 0];
+    activePile = -1;
+    renderBoard();
+    updateXor();
+  }
+
+  // ── STATUS ────────────────────────────────────────────────────
+  function updateStatus(winner) {
+    if (winner) {
+      playerDot.className = `player-dot ${winner === 2 ? 'p2' : ''}`;
+      playerLabel.textContent = `Player ${winner} wins!`;
+      turnLabel.textContent = '';
+      statusMsg.textContent = misere ? '(took the last stone — loses in Misère!)' : '(took the last stone!)';
+      statusMsg.className = 'status-msg win';
+    } else {
+      playerDot.className = `player-dot ${currentPlayer === 2 ? 'p2' : ''}`;
+      playerLabel.textContent = `Player ${currentPlayer}'s turn`;
+      turnLabel.textContent = activePile !== -1
+        ? `Pile ${['A','B','C'][activePile]} selected — confirm or cancel`
+        : 'Click a stone to select how many to take';
+      statusMsg.textContent = '';
+      statusMsg.className = 'status-msg';
+    }
+  }
+
+  // ── XOR DISPLAY ───────────────────────────────────────────────
+  function updateXor() {
+    const xor = nimXor();
+    const pileStrs = piles.map((p, i) => `${['A','B','C'][i]}=${p}`).join(' ');
+    xorDisplay.innerHTML = `${pileStrs} → XOR = <span class="xor-val">${xor}</span>`;
+
+    if (showAnalysis) updateAnalysis();
+  }
+
+  function updateAnalysis() {
+    const xor = nimXor();
+    const losing = isLosingPosition();
+    if (gameOver) {
+      analysisText.innerHTML = `<strong>Game over.</strong>`;
+      return;
+    }
+    if (losing) {
+      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${misere ? ' (Misère mode)' : ''}.</strong> This is a <strong style="color:var(--game-col)">P-position</strong> (Previous player wins) — the current player is in a losing position with perfect play.`;
+    } else {
+      // find a winning move
+      let hint = '';
+      for (let p = 0; p < pileCount; p++) {
+        const target = piles[p] ^ xor;
+        if (target < piles[p]) {
+          hint = `Take ${piles[p] - target} from Pile ${['A','B','C'][p]} (leaving ${target}).`;
+          break;
+        }
+      }
+      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${misere ? ' (Misère mode)' : ''}.</strong> This is an <strong style="color:var(--accent)">N-position</strong> — the current player can win with the right move. ${hint ? `Hint: ${hint}` : ''}`;
+    }
+  }
+
+  // ── HISTORY ───────────────────────────────────────────────────
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span>';
+      return;
+    }
+    historyList.innerHTML = history.map((m, i) =>
+      `<span class="history-chip p${m.player}">P${m.player}: −${m.took} from ${m.pile}</span>`
+    ).join('');
+  }
+
+  // ── RESET ─────────────────────────────────────────────────────
+  function resetGame() {
+    piles = pileSizes.slice(0, pileCount).map(x => x);
+    selected = Array(pileCount).fill(0);
+    activePile = -1;
+    currentPlayer = 1;
+    gameOver = false;
+    history = [];
+    renderBoard();
+    updateXor();
+    updateStatus(null);
+    renderHistory();
+  }
+
+  // ── EVENTS ────────────────────────────────────────────────────
+  resetBtn.addEventListener('click', resetGame);
+
+  pileDown.addEventListener('click', () => {
+    if (pileCount > 2) {
+      pileCount--;
+      if (pileSizes.length < pileCount) pileSizes.push(3);
+      pileCountDisp.textContent = pileCount;
+      buildPileSizeControls();
+      resetGame();
+    }
+  });
+
+  pileUp.addEventListener('click', () => {
+    if (pileCount < 3) {
+      pileCount++;
+      if (pileSizes.length < pileCount) pileSizes.push(3);
+      pileCountDisp.textContent = pileCount;
+      buildPileSizeControls();
+      resetGame();
+    }
+  });
+
+  misereToggle.addEventListener('click', () => {
+    misere = !misere;
+    misereSwitch.classList.toggle('on', misere);
+    updateXor();
+    updateStatus(gameOver ? null : null);
+    if (!gameOver) updateStatus(null);
+  });
+
+  hintToggle.addEventListener('click', () => {
+    showAnalysis = !showAnalysis;
+    analysisPanel.classList.toggle('visible', showAnalysis);
+    hintToggle.textContent = showAnalysis ? 'hide analysis' : 'show analysis';
+    if (showAnalysis) updateAnalysis();
+  });
+
+  // ── INIT ──────────────────────────────────────────────────────
+  buildPileSizeControls();
+  resetGame();
+
+})();
+</script>
+
+</body>
+</html>
