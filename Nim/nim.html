@@ -733,20 +733,32 @@
   <span>Problem 4 of 10 · Game Theory</span>
 </footer>
 
-<script>
-(function() {
+<script type="module">
+  import { initializeApp }            from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue, get }
+                                       from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
-  // ── STATE ──────────────────────────────────────────────────────
-  let pileCount   = 2;
-  let pileSizes   = [3, 5];
-  let piles       = [3, 5];        // current stone counts
-  let selected    = [-1, -1, -1];  // selected stone index per pile (-1 = none)
-  let activePile  = -1;            // which pile is being interacted with
-  let currentPlayer = 1;           // 1 or 2
-  let gameOver    = false;
-  let misere      = false;
-  let history     = [];
+  // ── FIREBASE INIT ─────────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+    authDomain:        "acton-math-circle.firebaseapp.com",
+    databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+    projectId:         "acton-math-circle",
+    storageBucket:     "acton-math-circle.firebasestorage.app",
+    messagingSenderId: "834678210381",
+    appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const gameRef = ref(db, 'nim/game');
+
+  // ── LOCAL UI STATE (not synced — per browser only) ────────────
+  let selected   = [0, 0, 0];
+  let activePile = -1;
   let showAnalysis = false;
+
+  // ── REMOTE GAME STATE (synced via Firebase) ───────────────────
+  let state = null;   // always reflects latest Firebase snapshot
 
   // ── DOM REFS ──────────────────────────────────────────────────
   const board         = document.getElementById('nimBoard');
@@ -768,28 +780,66 @@
   const misereSwitch  = document.getElementById('misereSwitch');
 
   // ── HELPERS ───────────────────────────────────────────────────
-  function nimXor() {
+  function nimXor(piles) {
     return piles.reduce((acc, p) => acc ^ p, 0);
   }
-
-  function totalStones() {
+  function totalStones(piles) {
     return piles.reduce((a, b) => a + b, 0);
   }
-
-  function isLosingPosition() {
-    // Normal: XOR=0 is P-position (losing for player to move)
-    // Misere: same except when all piles ≤ 1, flip
-    const xor = nimXor();
+  function isLosingPosition(piles, misere) {
+    const xor = nimXor(piles);
     if (!misere) return xor === 0;
     const allSmall = piles.every(p => p <= 1);
-    if (allSmall) return xor !== 0; // in misere, last stone is bad
-    return xor === 0;
+    return allSmall ? xor !== 0 : xor === 0;
   }
+
+  // ── DEFAULT STATE ─────────────────────────────────────────────
+  function defaultState(pileCount, pileSizes, misere) {
+    return {
+      pileCount,
+      pileSizes: pileSizes.slice(0, pileCount),
+      piles:     pileSizes.slice(0, pileCount).map(x => x),
+      currentPlayer: 1,
+      gameOver: false,
+      winner: null,
+      misere: misere || false,
+      history: []
+    };
+  }
+
+  // ── WRITE TO FIREBASE ─────────────────────────────────────────
+  async function pushState(newState) {
+    await set(gameRef, newState);
+  }
+
+  // ── LISTEN FOR CHANGES ────────────────────────────────────────
+  onValue(gameRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      // First load — initialise with defaults
+      pushState(defaultState(2, [3, 5], false));
+      return;
+    }
+    state = data;
+    // Sync config controls to match remote state
+    pileCountDisp.textContent = state.pileCount;
+    misereSwitch.classList.toggle('on', state.misere);
+    // Clear local selection if a move was just committed
+    selected   = Array(state.pileCount).fill(0);
+    activePile = -1;
+    // Re-render everything
+    buildPileSizeControls();
+    renderBoard();
+    updateXor();
+    updateStatus();
+    renderHistory();
+  });
 
   // ── BUILD PILE SIZE CONTROLS ──────────────────────────────────
   function buildPileSizeControls() {
+    if (!state) return;
     pileSizeCtrl.innerHTML = '';
-    for (let i = 0; i < pileCount; i++) {
+    for (let i = 0; i < state.pileCount; i++) {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:13px;';
 
@@ -804,7 +854,7 @@
 
       const val = document.createElement('span');
       val.style.cssText = 'font-family:Fraunces,serif;font-size:16px;font-weight:600;min-width:18px;text-align:center;';
-      val.textContent = pileSizes[i];
+      val.textContent = state.pileSizes[i];
 
       const inc = document.createElement('button');
       inc.className = 'pile-count-btn';
@@ -813,10 +863,16 @@
 
       const idx = i;
       dec.addEventListener('click', () => {
-        if (pileSizes[idx] > 1) { pileSizes[idx]--; val.textContent = pileSizes[idx]; resetGame(); }
+        if (!state || state.pileSizes[idx] <= 1) return;
+        const newSizes = [...state.pileSizes];
+        newSizes[idx]--;
+        pushState(defaultState(state.pileCount, newSizes, state.misere));
       });
       inc.addEventListener('click', () => {
-        if (pileSizes[idx] < 12) { pileSizes[idx]++; val.textContent = pileSizes[idx]; resetGame(); }
+        if (!state || state.pileSizes[idx] >= 12) return;
+        const newSizes = [...state.pileSizes];
+        newSizes[idx]++;
+        pushState(defaultState(state.pileCount, newSizes, state.misere));
       });
 
       wrap.appendChild(lbl);
@@ -829,60 +885,57 @@
 
   // ── RENDER BOARD ──────────────────────────────────────────────
   function renderBoard() {
+    if (!state) return;
     board.innerHTML = '';
-    for (let p = 0; p < pileCount; p++) {
+    for (let p = 0; p < state.pileCount; p++) {
       const row = document.createElement('div');
       row.className = 'pile-row';
 
       const lbl = document.createElement('div');
       lbl.className = 'pile-label';
-      lbl.innerHTML = `Pile ${['A','B','C'][p]}<span>${piles[p]} stone${piles[p] !== 1 ? 's' : ''}</span>`;
+      lbl.innerHTML = `Pile ${['A','B','C'][p]}<span>${state.piles[p]} stone${state.piles[p] !== 1 ? 's' : ''}</span>`;
 
       const stonesArea = document.createElement('div');
       stonesArea.className = 'stones-area';
 
-      for (let s = 0; s < pileSizes[p]; s++) {
+      for (let s = 0; s < state.pileSizes[p]; s++) {
         const stone = document.createElement('div');
         stone.className = 'stone';
-        if (s >= piles[p]) stone.classList.add('removed');
-        if (!gameOver && s < piles[p] && activePile === -1 || activePile === p) {
-          if (selected[p] !== -1 && s >= piles[p] - selected[p]) {
+        if (s >= state.piles[p]) stone.classList.add('removed');
+        if (!state.gameOver && (activePile === -1 || activePile === p)) {
+          if (selected[p] > 0 && s >= state.piles[p] - selected[p]) {
             stone.classList.add('selected');
           }
         }
-        if (gameOver) stone.classList.add('game-over');
+        if (state.gameOver) stone.classList.add('game-over');
 
         const pileIdx = p, stoneIdx = s;
         stone.addEventListener('click', () => handleStoneClick(pileIdx, stoneIdx));
         stonesArea.appendChild(stone);
       }
 
-      // action buttons
       const actions = document.createElement('div');
       actions.className = 'pile-actions';
 
-      if (!gameOver && (activePile === -1 || activePile === p) && piles[p] > 0) {
+      if (!state.gameOver && (activePile === -1 || activePile === p) && state.piles[p] > 0) {
         if (activePile === p && selected[p] > 0) {
-          // confirm button
-          const confirm = document.createElement('button');
-          confirm.className = 'take-btn confirm';
-          confirm.textContent = `Take ${selected[p]}`;
-          confirm.addEventListener('click', () => confirmTake(p));
-          actions.appendChild(confirm);
+          const confirmBtn = document.createElement('button');
+          confirmBtn.className = 'take-btn confirm';
+          confirmBtn.textContent = `Take ${selected[p]}`;
+          confirmBtn.addEventListener('click', () => confirmTake(p));
+          actions.appendChild(confirmBtn);
 
-          // cancel
-          const cancel = document.createElement('button');
-          cancel.className = 'take-btn';
-          cancel.textContent = 'Cancel';
-          cancel.addEventListener('click', () => cancelSelection());
-          actions.appendChild(cancel);
+          const cancelBtn = document.createElement('button');
+          cancelBtn.className = 'take-btn';
+          cancelBtn.textContent = 'Cancel';
+          cancelBtn.addEventListener('click', cancelSelection);
+          actions.appendChild(cancelBtn);
         } else if (activePile === -1) {
-          // take all shortcut
-          const takeAll = document.createElement('button');
-          takeAll.className = 'take-btn';
-          takeAll.textContent = 'Take all';
-          takeAll.addEventListener('click', () => takeAll_fn(p));
-          actions.appendChild(takeAll);
+          const takeAllBtn = document.createElement('button');
+          takeAllBtn.className = 'take-btn';
+          takeAllBtn.textContent = 'Take all';
+          takeAllBtn.addEventListener('click', () => takeAllFn(p));
+          actions.appendChild(takeAllBtn);
         }
       }
 
@@ -893,185 +946,145 @@
     }
   }
 
-  // ── STONE CLICK ───────────────────────────────────────────────
+  // ── STONE CLICK (local only — no Firebase write yet) ──────────
   function handleStoneClick(pileIdx, stoneIdx) {
-    if (gameOver) return;
-    if (piles[pileIdx] === 0) return;
-    if (activePile !== -1 && activePile !== pileIdx) return; // already chose a different pile
+    if (!state || state.gameOver) return;
+    if (state.piles[pileIdx] === 0) return;
+    if (activePile !== -1 && activePile !== pileIdx) return;
 
     activePile = pileIdx;
-    // count how many stones from right are selected
-    // stoneIdx is 0-based from left; stones are shown left-to-right
-    // selecting stone at stoneIdx means taking all stones from stoneIdx to end
-    const countFromRight = piles[pileIdx] - stoneIdx;
-    // toggle: if same selection, deselect
-    if (selected[pileIdx] === countFromRight) {
-      selected[pileIdx] = 0;
-      if (selected[pileIdx] === 0) activePile = -1;
-    } else {
-      selected[pileIdx] = countFromRight;
-    }
+    const countFromRight = state.piles[pileIdx] - stoneIdx;
+    selected[pileIdx] = (selected[pileIdx] === countFromRight) ? 0 : countFromRight;
+    if (selected[pileIdx] === 0) activePile = -1;
     renderBoard();
-    updateXor();
   }
 
-  function takeAll_fn(pileIdx) {
-    if (gameOver || piles[pileIdx] === 0) return;
+  function takeAllFn(pileIdx) {
+    if (!state || state.gameOver || state.piles[pileIdx] === 0) return;
     activePile = pileIdx;
-    selected[pileIdx] = piles[pileIdx];
+    selected[pileIdx] = state.piles[pileIdx];
     renderBoard();
-    updateXor();
-  }
-
-  function confirmTake(pileIdx) {
-    if (gameOver || selected[pileIdx] <= 0) return;
-    const took = selected[pileIdx];
-    piles[pileIdx] -= took;
-
-    // record history
-    history.push({ player: currentPlayer, pile: ['A','B','C'][pileIdx], took });
-
-    // reset selection
-    selected = [-1, -1, -1].slice(0, pileCount).fill(0);
-    activePile = -1;
-
-    // check win condition
-    const total = totalStones();
-    if (total === 0) {
-      gameOver = true;
-      let winner;
-      if (misere) {
-        // last to take loses → current player loses
-        winner = currentPlayer === 1 ? 2 : 1;
-      } else {
-        winner = currentPlayer;
-      }
-      renderBoard();
-      updateXor();
-      updateStatus(winner);
-      renderHistory();
-      return;
-    }
-
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
-    renderBoard();
-    updateXor();
-    updateStatus(null);
-    renderHistory();
   }
 
   function cancelSelection() {
-    selected = [0, 0, 0];
+    selected   = Array(state ? state.pileCount : 2).fill(0);
     activePile = -1;
     renderBoard();
-    updateXor();
+  }
+
+  // ── CONFIRM TAKE → writes to Firebase ────────────────────────
+  async function confirmTake(pileIdx) {
+    if (!state || state.gameOver || selected[pileIdx] <= 0) return;
+
+    const took      = selected[pileIdx];
+    const newPiles  = [...state.piles];
+    newPiles[pileIdx] -= took;
+
+    const newHistory = [...(state.history || []),
+      { player: state.currentPlayer, pile: ['A','B','C'][pileIdx], took }];
+
+    const total = totalStones(newPiles);
+    let newGameOver = false, newWinner = null, nextPlayer = state.currentPlayer === 1 ? 2 : 1;
+
+    if (total === 0) {
+      newGameOver = true;
+      newWinner   = state.misere
+        ? (state.currentPlayer === 1 ? 2 : 1)   // last to take loses
+        : state.currentPlayer;
+    }
+
+    await pushState({
+      ...state,
+      piles:         newPiles,
+      currentPlayer: newGameOver ? state.currentPlayer : nextPlayer,
+      gameOver:      newGameOver,
+      winner:        newWinner,
+      history:       newHistory
+    });
+    // onValue listener will re-render for everyone
   }
 
   // ── STATUS ────────────────────────────────────────────────────
-  function updateStatus(winner) {
-    if (winner) {
-      playerDot.className = `player-dot ${winner === 2 ? 'p2' : ''}`;
-      playerLabel.textContent = `Player ${winner} wins!`;
-      turnLabel.textContent = '';
-      statusMsg.textContent = misere ? '(took the last stone — loses in Misère!)' : '(took the last stone!)';
-      statusMsg.className = 'status-msg win';
+  function updateStatus() {
+    if (!state) return;
+    if (state.gameOver && state.winner) {
+      playerDot.className   = `player-dot ${state.winner === 2 ? 'p2' : ''}`;
+      playerLabel.textContent = `Player ${state.winner} wins!`;
+      turnLabel.textContent   = '';
+      statusMsg.textContent   = state.misere ? '(took the last stone — loses in Misère!)' : '(took the last stone!)';
+      statusMsg.className     = 'status-msg win';
     } else {
-      playerDot.className = `player-dot ${currentPlayer === 2 ? 'p2' : ''}`;
-      playerLabel.textContent = `Player ${currentPlayer}'s turn`;
-      turnLabel.textContent = activePile !== -1
+      playerDot.className   = `player-dot ${state.currentPlayer === 2 ? 'p2' : ''}`;
+      playerLabel.textContent = `Player ${state.currentPlayer}'s turn`;
+      turnLabel.textContent   = activePile !== -1
         ? `Pile ${['A','B','C'][activePile]} selected — confirm or cancel`
         : 'Click a stone to select how many to take';
       statusMsg.textContent = '';
-      statusMsg.className = 'status-msg';
+      statusMsg.className   = 'status-msg';
     }
   }
 
   // ── XOR DISPLAY ───────────────────────────────────────────────
   function updateXor() {
-    const xor = nimXor();
-    const pileStrs = piles.map((p, i) => `${['A','B','C'][i]}=${p}`).join(' ');
+    if (!state) return;
+    const xor      = nimXor(state.piles);
+    const pileStrs = state.piles.map((p, i) => `${['A','B','C'][i]}=${p}`).join(' ');
     xorDisplay.innerHTML = `${pileStrs} → XOR = <span class="xor-val">${xor}</span>`;
-
     if (showAnalysis) updateAnalysis();
   }
 
   function updateAnalysis() {
-    const xor = nimXor();
-    const losing = isLosingPosition();
-    if (gameOver) {
-      analysisText.innerHTML = `<strong>Game over.</strong>`;
-      return;
-    }
+    if (!state) return;
+    const xor    = nimXor(state.piles);
+    const losing = isLosingPosition(state.piles, state.misere);
+    if (state.gameOver) { analysisText.innerHTML = '<strong>Game over.</strong>'; return; }
     if (losing) {
-      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${misere ? ' (Misère mode)' : ''}.</strong> This is a <strong style="color:var(--game-col)">P-position</strong> (Previous player wins) — the current player is in a losing position with perfect play.`;
+      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${state.misere ? ' (Misère)' : ''}.</strong> This is a <strong style="color:var(--game-col)">P-position</strong> — current player loses with perfect play.`;
     } else {
-      // find a winning move
       let hint = '';
-      for (let p = 0; p < pileCount; p++) {
-        const target = piles[p] ^ xor;
-        if (target < piles[p]) {
-          hint = `Take ${piles[p] - target} from Pile ${['A','B','C'][p]} (leaving ${target}).`;
+      for (let p = 0; p < state.pileCount; p++) {
+        const target = state.piles[p] ^ xor;
+        if (target < state.piles[p]) {
+          hint = `Take ${state.piles[p] - target} from Pile ${['A','B','C'][p]} (leaving ${target}).`;
           break;
         }
       }
-      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${misere ? ' (Misère mode)' : ''}.</strong> This is an <strong style="color:var(--accent)">N-position</strong> — the current player can win with the right move. ${hint ? `Hint: ${hint}` : ''}`;
+      analysisText.innerHTML = `<strong>Nim-sum = ${xor}${state.misere ? ' (Misère)' : ''}.</strong> This is an <strong style="color:var(--accent)">N-position</strong> — current player can win. ${hint}`;
     }
   }
 
   // ── HISTORY ───────────────────────────────────────────────────
   function renderHistory() {
-    if (history.length === 0) {
+    if (!state || !state.history || state.history.length === 0) {
       historyList.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span>';
       return;
     }
-    historyList.innerHTML = history.map((m, i) =>
+    historyList.innerHTML = state.history.map(m =>
       `<span class="history-chip p${m.player}">P${m.player}: −${m.took} from ${m.pile}</span>`
     ).join('');
   }
 
-  // ── RESET ─────────────────────────────────────────────────────
-  function resetGame() {
-    piles = pileSizes.slice(0, pileCount).map(x => x);
-    selected = Array(pileCount).fill(0);
-    activePile = -1;
-    currentPlayer = 1;
-    gameOver = false;
-    history = [];
-    renderBoard();
-    updateXor();
-    updateStatus(null);
-    renderHistory();
-  }
-
   // ── EVENTS ────────────────────────────────────────────────────
-  resetBtn.addEventListener('click', resetGame);
+  resetBtn.addEventListener('click', () => {
+    if (!state) return;
+    pushState(defaultState(state.pileCount, state.pileSizes, state.misere));
+  });
 
   pileDown.addEventListener('click', () => {
-    if (pileCount > 2) {
-      pileCount--;
-      if (pileSizes.length < pileCount) pileSizes.push(3);
-      pileCountDisp.textContent = pileCount;
-      buildPileSizeControls();
-      resetGame();
-    }
+    if (!state || state.pileCount <= 2) return;
+    pushState(defaultState(state.pileCount - 1, state.pileSizes, state.misere));
   });
 
   pileUp.addEventListener('click', () => {
-    if (pileCount < 3) {
-      pileCount++;
-      if (pileSizes.length < pileCount) pileSizes.push(3);
-      pileCountDisp.textContent = pileCount;
-      buildPileSizeControls();
-      resetGame();
-    }
+    if (!state || state.pileCount >= 3) return;
+    const newSizes = [...state.pileSizes];
+    if (newSizes.length < state.pileCount + 1) newSizes.push(3);
+    pushState(defaultState(state.pileCount + 1, newSizes, state.misere));
   });
 
   misereToggle.addEventListener('click', () => {
-    misere = !misere;
-    misereSwitch.classList.toggle('on', misere);
-    updateXor();
-    updateStatus(gameOver ? null : null);
-    if (!gameOver) updateStatus(null);
+    if (!state) return;
+    pushState(defaultState(state.pileCount, state.pileSizes, !state.misere));
   });
 
   hintToggle.addEventListener('click', () => {
@@ -1081,11 +1094,6 @@
     if (showAnalysis) updateAnalysis();
   });
 
-  // ── INIT ──────────────────────────────────────────────────────
-  buildPileSizeControls();
-  resetGame();
-
-})();
 </script>
 
 </body>
