@@ -565,10 +565,18 @@
     <!-- config -->
     <div class="config-bar">
       <div class="config-group">
-        <label>Frogs per side:</label>
-        <button class="cfg-btn" id="nDown">−</button>
-        <span class="cfg-val" id="nDisplay">3</span>
-        <button class="cfg-btn" id="nUp">+</button>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--brown);margin-right:4px;"></span>
+        <label>Brown frogs:</label>
+        <button class="cfg-btn" id="bDown">−</button>
+        <span class="cfg-val" id="bDisplay">3</span>
+        <button class="cfg-btn" id="bUp">+</button>
+      </div>
+      <div class="config-group">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);margin-right:4px;"></span>
+        <label>Green frogs:</label>
+        <button class="cfg-btn" id="gDown">−</button>
+        <span class="cfg-val" id="gDisplay">3</span>
+        <button class="cfg-btn" id="gUp">+</button>
       </div>
       <button class="undo-btn" id="undoBtn" disabled>↩ Undo</button>
       <button class="reset-btn" id="resetBtn">↺ Reset</button>
@@ -581,7 +589,7 @@
         <div class="move-label">moves</div>
       </div>
       <div class="move-divider"></div>
-      <div class="target-label">Frogs per side: <strong id="targetMoves">3</strong></div>
+      <div class="target-label">🟤 <strong id="bCount">3</strong> vs 🟢 <strong id="gCount">3</strong></div>
       <span class="status-msg" id="statusMsg">Click a frog to select it</span>
     </div>
 
@@ -672,10 +680,10 @@
   };
   const app     = initializeApp(firebaseConfig);
   const db      = getDatabase(app);
-  const gameRef = ref(db, 'frog/game');
+  const gameRef = ref(db, 'frog/game-v2');
 
   // ── LOCAL UI STATE ────────────────────────────────────────────
-  let selectedCell = -1;   // index of currently selected frog cell
+  let selectedCell = -1;
 
   // ── REMOTE STATE ──────────────────────────────────────────────
   let state = null;
@@ -683,53 +691,51 @@
   // ── DOM ───────────────────────────────────────────────────────
   const boardTrack  = document.getElementById('boardTrack');
   const moveCounter = document.getElementById('moveCounter');
-  const targetMoves = document.getElementById('targetMoves');
+  const bCount      = document.getElementById('bCount');
+  const gCount      = document.getElementById('gCount');
   const statusMsg   = document.getElementById('statusMsg');
   const logChips    = document.getElementById('logChips');
-  const nDisplay    = document.getElementById('nDisplay');
-  const nDown       = document.getElementById('nDown');
-  const nUp         = document.getElementById('nUp');
+  const bDisplay    = document.getElementById('bDisplay');
+  const gDisplay    = document.getElementById('gDisplay');
+  const bDown       = document.getElementById('bDown');
+  const bUp         = document.getElementById('bUp');
+  const gDown       = document.getElementById('gDown');
+  const gUp         = document.getElementById('gUp');
   const resetBtn    = document.getElementById('resetBtn');
   const undoBtn     = document.getElementById('undoBtn');
 
   // ── HELPERS ───────────────────────────────────────────────────
   // Cell values: 'B' = brown, 'G' = green, '_' = empty
-  function makeBoard(n) {
-    return [...Array(n).fill('B'), '_', ...Array(n).fill('G')];
+  function makeBoard(nB, nG) {
+    return [...Array(nB).fill('B'), '_', ...Array(nG).fill('G')];
   }
 
-  function goalBoard(n) {
-    return [...Array(n).fill('G'), '_', ...Array(n).fill('B')];
+  function goalBoard(nB, nG) {
+    return [...Array(nG).fill('G'), '_', ...Array(nB).fill('B')];
   }
 
-  function minMoves(n) { return n * n + 2 * n; }
+  // Minimum moves for m brown vs n green: mn + m + n
+  function minMoves(nB, nG) { return nB * nG + nB + nG; }
 
-  function isGoal(board, n) {
-    const goal = goalBoard(n);
+  function isGoal(board, nB, nG) {
+    const goal = goalBoard(nB, nG);
     return board.every((v, i) => v === goal[i]);
   }
 
-  // Returns list of legal move destination indices from a given cell
   function legalMoves(board, from) {
     const piece = board[from];
     if (piece === '_') return [];
-    const dir = piece === 'B' ? 1 : -1;   // B moves right, G moves left
+    const dir = piece === 'B' ? 1 : -1;
     const moves = [];
-
-    // Slide: one step in direction
     const slide = from + dir;
     if (slide >= 0 && slide < board.length && board[slide] === '_') {
       moves.push(slide);
     }
-
-    // Jump: two steps, must have opposite frog in between
     const jump = from + 2 * dir;
     const mid  = from + dir;
     if (jump >= 0 && jump < board.length && board[jump] === '_') {
       const midPiece = board[mid];
-      if (midPiece !== '_' && midPiece !== piece) {
-        moves.push(jump);
-      }
+      if (midPiece !== '_' && midPiece !== piece) moves.push(jump);
     }
     return moves;
   }
@@ -742,18 +748,16 @@
     return froms;
   }
 
-  function isStuck(board) {
-    return allLegalFroms(board).length === 0;
-  }
+  function isStuck(board) { return allLegalFroms(board).length === 0; }
 
   // ── DEFAULT STATE ─────────────────────────────────────────────
-  function defaultState(n) {
+  function defaultState(nB, nG) {
     return {
-      n,
-      board:   makeBoard(n),
+      nB, nG,
+      board:   makeBoard(nB, nG),
       moves:   0,
-      log:     [],       // [{from, to, piece, type}]
-      history: [],       // stack of previous boards for undo
+      log:     [],
+      history: [],
       solved:  false,
       stuck:   false
     };
@@ -764,11 +768,17 @@
 
   onValue(gameRef, (snap) => {
     const data = snap.val();
-    if (!data) { pushState(defaultState(3)); return; }
+    if (!data) { pushState(defaultState(3, 3)); return; }
     state = data;
+    // Migrate old state that only had n
+    if (state.n !== undefined && state.nB === undefined) {
+      pushState(defaultState(state.n, state.n)); return;
+    }
     selectedCell = -1;
-    nDisplay.textContent = state.n;
-    targetMoves.textContent = state.n;
+    bDisplay.textContent = state.nB;
+    gDisplay.textContent = state.nG;
+    bCount.textContent   = state.nB;
+    gCount.textContent   = state.nG;
     renderBoard();
     renderStatus();
     renderLog();
@@ -778,9 +788,9 @@
   function renderBoard() {
     if (!state) return;
     boardTrack.innerHTML = '';
-    const board  = state.board;
-    const froms  = state.solved || state.stuck ? [] : allLegalFroms(board);
-    const dests  = selectedCell >= 0 ? legalMoves(board, selectedCell) : [];
+    const board = state.board;
+    const froms = state.solved || state.stuck ? [] : allLegalFroms(board);
+    const dests = selectedCell >= 0 ? legalMoves(board, selectedCell) : [];
 
     board.forEach((val, idx) => {
       const cell = document.createElement('div');
@@ -791,7 +801,6 @@
         if (dests.includes(idx)) {
           cell.classList.add('can-move-to');
           cell.addEventListener('click', () => doMove(selectedCell, idx));
-          // show jump vs slide indicator
           const dist = Math.abs(idx - selectedCell);
           const arrow = document.createElement('span');
           arrow.className = 'cell-arrow';
@@ -802,7 +811,6 @@
         const frog = document.createElement('div');
         frog.className = `frog ${val === 'B' ? 'brown' : 'green-frog'}`;
         frog.textContent = '🐸';
-
         if (idx === selectedCell) {
           frog.classList.add('selected');
           frog.addEventListener('click', () => deselect());
@@ -814,11 +822,8 @@
         }
         cell.appendChild(frog);
       }
-
       boardTrack.appendChild(cell);
     });
-
-    targetMoves.textContent = minMoves(state.n);
   }
 
   // ── SELECT / DESELECT ─────────────────────────────────────────
@@ -842,46 +847,25 @@
     const board = [...state.board];
     const piece = board[from];
     const type  = Math.abs(to - from) === 1 ? 'slide' : 'jump';
-
     board[to]   = piece;
     board[from] = '_';
-
     const newLog     = [...(state.log || []), { from, to, piece, type }];
     const newHistory = [...(state.history || []), state.board];
     const newMoves   = state.moves + 1;
-    const solved     = isGoal(board, state.n);
+    const solved     = isGoal(board, state.nB, state.nG);
     const stuck      = !solved && isStuck(board);
-
     selectedCell = -1;
-
-    await pushState({
-      ...state,
-      board:   board,
-      moves:   newMoves,
-      log:     newLog,
-      history: newHistory,
-      solved,
-      stuck
-    });
+    await pushState({ ...state, board, moves: newMoves, log: newLog, history: newHistory, solved, stuck });
   }
 
   // ── UNDO ──────────────────────────────────────────────────────
   async function doUndo() {
     if (!state || !state.history || state.history.length === 0) return;
-    const history = [...state.history];
+    const history   = [...state.history];
     const prevBoard = history.pop();
-    const log = [...(state.log || [])];
+    const log       = [...(state.log || [])];
     log.pop();
-
-    await pushState({
-      ...state,
-      board:   prevBoard,
-      moves:   state.moves - 1,
-      log,
-      history,
-      solved:  false,
-      stuck:   false
-    });
+    await pushState({ ...state, board: prevBoard, moves: state.moves - 1, log, history, solved: false, stuck: false });
   }
 
   // ── STATUS ────────────────────────────────────────────────────
@@ -889,12 +873,8 @@
     if (!state) return;
     moveCounter.textContent = state.moves;
     undoBtn.disabled = !state.history || state.history.length === 0;
-
     if (state.solved) {
-      const optimal = state.moves === minMoves(state.n);
-      statusMsg.textContent = optimal
-        ? `🎉 Solved in ${state.moves} moves — optimal!`
-        : `✓ Solved in ${state.moves} moves (minimum is ${minMoves(state.n)})`;
+      statusMsg.textContent = `🎉 Solved in ${state.moves} moves!`;
       statusMsg.className = 'status-msg win';
     } else if (state.stuck) {
       statusMsg.textContent = '⚠ Stuck! No legal moves — use Undo or Reset';
@@ -911,7 +891,7 @@
       logChips.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span>';
       return;
     }
-    logChips.innerHTML = state.log.map((m, i) => {
+    logChips.innerHTML = state.log.map(m => {
       const cls = m.type === 'slide'
         ? (m.piece === 'B' ? 'slide-b' : 'slide-g')
         : (m.piece === 'B' ? 'jump-b'  : 'jump-g');
@@ -923,19 +903,26 @@
   // ── EVENTS ────────────────────────────────────────────────────
   resetBtn.addEventListener('click', () => {
     if (!state) return;
-    pushState(defaultState(state.n));
+    pushState(defaultState(state.nB, state.nG));
   });
 
   undoBtn.addEventListener('click', doUndo);
 
-  nDown.addEventListener('click', () => {
-    if (!state || state.n <= 1) return;
-    pushState(defaultState(state.n - 1));
+  bDown.addEventListener('click', () => {
+    if (!state || state.nB <= 1) return;
+    pushState(defaultState(state.nB - 1, state.nG));
   });
-
-  nUp.addEventListener('click', () => {
-    if (!state || state.n >= 6) return;
-    pushState(defaultState(state.n + 1));
+  bUp.addEventListener('click', () => {
+    if (!state || state.nB >= 6) return;
+    pushState(defaultState(state.nB + 1, state.nG));
+  });
+  gDown.addEventListener('click', () => {
+    if (!state || state.nG <= 1) return;
+    pushState(defaultState(state.nB, state.nG - 1));
+  });
+  gUp.addEventListener('click', () => {
+    if (!state || state.nG >= 6) return;
+    pushState(defaultState(state.nB, state.nG + 1));
   });
 
 </script>
