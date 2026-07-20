@@ -912,6 +912,19 @@
   onValue(gameRef, (snap) => {
     const data = snap.val();
     if (!data) { pushState(defaultState(3, 3, false, false, false)); return; }
+    // Always sanitize board — Firebase returns arrays as objects with numeric keys
+    if (data.board && !Array.isArray(data.board)) {
+      data.board = Object.keys(data.board).sort((a,b) => a-b).map(k => data.board[k]);
+    }
+    if (data.history) {
+      data.history = Object.keys(data.history).sort((a,b) => a-b).map(k => {
+        const b = data.history[k];
+        return Array.isArray(b) ? b : Object.keys(b).sort((a,b)=>a-b).map(k2=>b[k2]);
+      });
+    }
+    if (data.log && !Array.isArray(data.log)) {
+      data.log = Object.keys(data.log).sort((a,b) => a-b).map(k => data.log[k]);
+    }
     state = data;
     if (state.nB === undefined) { pushState(defaultState(3, 3, false, false, false)); return; }
 
@@ -994,14 +1007,14 @@
   // ── MOVE ──────────────────────────────────────────────────────
   async function doMove(from, to) {
     if (!state || state.solved || state.stuck) return;
-    const board    = [...state.board];
+    const board    = Array.from(state.board);   // guarantee true array
     const piece    = board[from];
     const dist     = Math.abs(to - from);
     const type     = moveLabel(dist);
     board[to]      = piece;
     board[from]    = '_';
     const newLog     = [...(state.log || []), { from, to, piece, type }];
-    const newHistory = [...(state.history || []), state.board];
+    const newHistory = [...(state.history || []), Array.from(state.board)];
     const newMoves   = state.moves + 1;
     const solved     = isGoal(board, state.nB, state.nG, state.withRed);
     const stuck      = !solved && isStuck(board, state.longJump);
