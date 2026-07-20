@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acton Math Circle — Frog Leap Variations</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:       #1a1a2e;
+    --paper:     #faf8f3;
+    --accent:    #2e6b9e;
+    --accent2:   #c2692a;
+    --rule:      #d6d0c4;
+    --pale:      #f0ece3;
+    --game-col:  #3a7d44;   /* green — frogs! */
+    --game-bg:   #edf7ee;
+    --game-bdr:  #a8d5ad;
+    --brown:     #7b4a1e;
+    --brown-lt:  #c8895a;
+    --green:     #2e7d32;
+    --green-lt:  #66bb6a;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 0 0 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 52px 40px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '🐸 → ← 🐸';
+    position: absolute;
+    right: 40px; top: 32px;
+    font-size: 20px;
+    color: rgba(255,255,255,0.07);
+    letter-spacing: 10px;
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green-lt);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 600;
+    line-height: 1.15;
+    max-width: 620px;
+    margin-bottom: 14px;
+  }
+  header h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: #a8d5ad;
+  }
+  header p.subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    max-width: 520px;
+  }
+
+  /* ── BREADCRUMB ── */
+  .breadcrumb {
+    padding: 14px 40px;
+    background: var(--pale);
+    border-bottom: 1px solid var(--rule);
+    font-size: 12px;
+    color: #888;
+  }
+  .breadcrumb a { color: var(--accent); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb span { margin: 0 6px; color: #ccc; }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    background: var(--game-bg);
+    color: var(--game-col);
+    border: 1.5px solid var(--game-bdr);
+    margin-bottom: 18px;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 52px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .section-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--game-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .section-header .concept {
+    margin-left: auto;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #888;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── PROBLEM CARD ── */
+  .problem-card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--game-col);
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .problem-num {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--rule);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 32px;
+  }
+  .problem-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .core-setup {
+    font-size: 14.5px;
+    color: #333;
+  }
+
+  /* ══════════════════════════════════════
+     FROG GAME WIDGET
+  ══════════════════════════════════════ */
+
+  .game-widget {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .game-widget-header {
+    background: var(--ink);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .widget-title {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .widget-subtitle {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* config bar */
+  .config-bar {
+    background: var(--pale);
+    border-bottom: 1px solid var(--rule);
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+  }
+  .config-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+  }
+  .config-group label { font-weight: 500; white-space: nowrap; }
+  .cfg-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--rule);
+    background: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    transition: all 0.15s;
+    line-height: 1; padding: 0;
+  }
+  .cfg-btn:hover { border-color: var(--game-col); color: var(--game-col); }
+  .cfg-val {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+  }
+  .reset-btn {
+    margin-left: auto;
+    padding: 6px 16px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.15s;
+  }
+  .reset-btn:hover { opacity: 0.8; }
+  .undo-btn {
+    padding: 6px 16px;
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--rule);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .undo-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .undo-btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* status bar */
+  .status-bar {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 50px;
+    flex-wrap: wrap;
+  }
+  .move-counter {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .move-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #aaa;
+    font-weight: 500;
+  }
+  .move-divider {
+    width: 1px; height: 32px;
+    background: var(--rule);
+    flex-shrink: 0;
+  }
+  .target-label {
+    font-size: 13px;
+    color: #888;
+  }
+  .target-label strong { color: var(--ink); }
+  .status-msg {
+    margin-left: auto;
+    font-size: 13px;
+    color: #888;
+    font-style: italic;
+  }
+  .status-msg.win {
+    color: var(--game-col);
+    font-style: normal;
+    font-weight: 600;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+  }
+  .status-msg.stuck {
+    color: #c62828;
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* ── BOARD ── */
+  .board-area {
+    padding: 32px 24px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .board-track {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .cell {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    border: 2px solid var(--rule);
+    background: var(--pale);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: default;
+  }
+  .cell.empty { background: #fff; }
+  .cell.can-move-to {
+    border-color: var(--game-col);
+    background: var(--game-bg);
+    cursor: pointer;
+  }
+  .cell.can-move-to:hover { background: #c8ecc9; }
+
+  /* frog */
+  .frog {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+    position: relative;
+    border: 2px solid transparent;
+  }
+  .frog.brown {
+    background: radial-gradient(circle at 35% 35%, var(--brown-lt), var(--brown));
+    box-shadow: 0 2px 6px rgba(123,74,30,0.3);
+  }
+  .frog.green-frog {
+    background: radial-gradient(circle at 35% 35%, var(--green-lt), var(--green));
+    box-shadow: 0 2px 6px rgba(46,125,50,0.3);
+  }
+  .frog.selected {
+    transform: scale(1.12) translateY(-3px);
+    border-color: #fff;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  }
+  .frog.can-move { cursor: pointer; }
+  .frog.can-move:hover { transform: scale(1.06); }
+  .frog.blocked { opacity: 0.5; cursor: default; }
+
+  /* direction arrows on cells */
+  .cell-arrow {
+    position: absolute;
+    bottom: 3px;
+    font-size: 9px;
+    color: #bbb;
+    font-weight: 600;
+    letter-spacing: 0px;
+  }
+
+  /* legend */
+  .legend {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .legend-dot.brown { background: var(--brown); }
+  .legend-dot.green { background: var(--green); }
+
+  /* move log */
+  .move-log {
+    padding: 0 24px 20px;
+    border-top: 1px solid var(--rule);
+  }
+  .log-label {
+    font-size: 10.5px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #bbb;
+    font-weight: 500;
+    padding: 14px 0 8px;
+  }
+  .log-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .log-chip {
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    border: 1px solid var(--rule);
+    color: #666;
+  }
+  .log-chip.slide-b  { border-color: #c8895a; color: var(--brown); }
+  .log-chip.jump-b   { border-color: #c8895a; color: var(--brown); background: #fdf0e6; }
+  .log-chip.slide-g  { border-color: #66bb6a; color: var(--green); }
+  .log-chip.jump-g   { border-color: #66bb6a; color: var(--green); background: #edf7ee; }
+
+  /* pattern table */
+  .pattern-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .pattern-table th {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #aaa;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+  }
+  .pattern-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--pale);
+    color: #444;
+  }
+  .pattern-table tr:last-child td { border-bottom: none; }
+  .pattern-table td:first-child { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; color: var(--ink); }
+  .highlight-row td { background: var(--game-bg); }
+
+  /* ── VARIATION TOGGLES ── */
+  .variations-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+  }
+  .var-label {
+    font-size: 10.5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #bbb;
+    font-weight: 500;
+    flex-basis: 100%;
+    margin-bottom: -8px;
+  }
+  .var-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
+    user-select: none;
+  }
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--rule);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--game-col); }
+  .toggle-knob {
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(16px); }
+  .var-desc {
+    font-size: 11px;
+    color: #aaa;
+    font-weight: 400;
+  }
+
+  /* red frog */
+  :root { --red: #b71c1c; --red-lt: #ef5350; }
+  .frog.red-frog {
+    background: radial-gradient(circle at 35% 35%, var(--red-lt), var(--red));
+    box-shadow: 0 2px 6px rgba(183,28,28,0.3);
+  }
+  .log-chip.slide-r { border-color: #ef9a9a; color: var(--red); }
+  .log-chip.jump-r  { border-color: #ef9a9a; color: var(--red); background: #ffebee; }
+
+  /* footer */
+  footer {
+    max-width: 860px;
+    margin: 60px auto 0;
+    padding: 24px 40px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 600px) {
+    header, main { padding-left: 20px; padding-right: 20px; }
+    .breadcrumb { padding-left: 20px; padding-right: 20px; }
+    .cell { width: 50px; height: 50px; }
+    .frog { width: 40px; height: 40px; font-size: 20px; }
+    .section-header .concept { display: none; }
+    .config-bar { padding: 12px 16px; }
+    .board-area { padding: 20px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Acton Math Circle · Grades 5–7</div>
+  <h1>Frog Leap — <em>Variations</em></h1>
+  <p class="subtitle">The classic puzzle plus three twists: two empty spaces, red frogs that move both ways, and long jumps over two frogs at once.</p>
+</header>
+
+<div class="breadcrumb">
+  <a href="index.html">← All Explorations</a>
+  <span>·</span>
+  Problem 5
+  <span>·</span>
+  Combinatorics · Invariants
+</div>
+
+<main>
+
+  <div class="section-header">
+    <div class="section-icon">🐸</div>
+    <h2>Combinatorics &amp; Invariants</h2>
+    <span class="concept">Avoid the deadlock</span>
+  </div>
+
+  <div class="tag">🐸 Combinatorics</div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num">5</span>
+      <span class="problem-title">The Frog Leap</span>
+    </div>
+    <div class="core-setup">
+      3 brown frogs sit on the left, 3 green frogs on the right, separated by one empty space.
+      Brown frogs only move <strong>right →</strong>; green frogs only move <strong>left ←</strong>.
+      A frog can <em>slide</em> one step into an empty space, or <em>jump</em> over exactly one frog of the opposite color into an empty space beyond.
+      Can all frogs swap sides? Find the minimum number of moves.
+    </div>
+  </div>
+
+  <!-- ══ INTERACTIVE GAME ══ -->
+
+  <div class="game-widget">
+
+    <div class="game-widget-header">
+      <div>
+        <div class="widget-title">Play Frog Leap</div>
+        <div class="widget-subtitle">Interactive · Click a frog to move it</div>
+      </div>
+    </div>
+
+    <!-- config -->
+    <div class="config-bar">
+      <div class="config-group">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--brown);margin-right:4px;"></span>
+        <label>Brown frogs:</label>
+        <button class="cfg-btn" id="bDown">−</button>
+        <span class="cfg-val" id="bDisplay">3</span>
+        <button class="cfg-btn" id="bUp">+</button>
+      </div>
+      <div class="config-group">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);margin-right:4px;"></span>
+        <label>Green frogs:</label>
+        <button class="cfg-btn" id="gDown">−</button>
+        <span class="cfg-val" id="gDisplay">3</span>
+        <button class="cfg-btn" id="gUp">+</button>
+      </div>
+      <button class="undo-btn" id="undoBtn" disabled>↩ Undo</button>
+      <button class="reset-btn" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <!-- variations -->
+    <div class="variations-bar">
+      <div class="var-label">Variations</div>
+      <label class="var-toggle" id="toggle2spaces">
+        <div class="toggle-switch" id="switch2spaces"><div class="toggle-knob"></div></div>
+        <span>Two empty spaces <span class="var-desc">— more room in the middle</span></span>
+      </label>
+      <label class="var-toggle" id="toggleRed">
+        <div class="toggle-switch" id="switchRed"><div class="toggle-knob"></div></div>
+        <span>Red frogs <span class="var-desc">— move either direction</span></span>
+      </label>
+      <label class="var-toggle" id="toggleLongJump">
+        <div class="toggle-switch" id="switchLongJump"><div class="toggle-knob"></div></div>
+        <span>Long jump <span class="var-desc">— jump over 2 frogs</span></span>
+      </label>
+    </div>
+
+    <!-- status -->
+    <div class="status-bar">
+      <div>
+        <div class="move-counter" id="moveCounter">0</div>
+        <div class="move-label">moves</div>
+      </div>
+      <div class="move-divider"></div>
+      <div class="target-label">🟤 <strong id="bCount">3</strong> vs 🟢 <strong id="gCount">3</strong></div>
+      <span class="status-msg" id="statusMsg">Click a frog to select it</span>
+    </div>
+
+    <!-- board -->
+    <div class="board-area">
+      <div class="board-track" id="boardTrack"></div>
+      <div class="legend" id="legend">
+        <div class="legend-item">
+          <div class="legend-dot brown">🐸</div>
+          <span>Brown — moves right →</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot green">🐸</div>
+          <span>Green — moves left ←</span>
+        </div>
+        <div class="legend-item" id="redLegend" style="display:none;">
+          <div class="legend-dot" style="background:var(--red);">🐸</div>
+          <span>Red — moves either direction</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- move log -->
+    <div class="move-log">
+      <div class="log-label">Move log</div>
+      <div class="log-chips" id="logChips"><span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span></div>
+    </div>
+
+  </div>
+
+  <!-- ══ DISCOVERY QUESTIONS ══ -->
+
+  <div class="section-header" style="margin-top:40px;">
+    <div class="section-icon">?</div>
+    <h2>Things to Discover</h2>
+    <span class="concept">Conjecture freely</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">①</span>
+      <span class="problem-title">Start small</span>
+    </div>
+    <div class="core-setup">
+      Set frogs per side to 1. Play it. Now try 2. Now try 3. Each time, record how many moves it took. What do you notice? Can you predict the number of moves for 4 vs 4 before playing?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">②</span>
+      <span class="problem-title">Deadlock — what goes wrong?</span>
+    </div>
+    <div class="core-setup">
+      Try to solve 3 vs 3 by moving frogs randomly. At some point you will get stuck — two frogs of the same color face each other across the empty space and neither can move. Why does this happen? What rule can you follow to <em>never</em> get stuck?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">③</span>
+      <span class="problem-title">The rhythm</span>
+    </div>
+    <div class="core-setup">
+      Look at the move log after a successful solution. Count how many brown moves and green moves appear in a row at each point. For n=3 the pattern of group sizes is 1, 2, 3, 2, 1. Does this pattern change for n=1 or n=2? What do you think it is for n=4?
+    </div>
+  </div>
+
+
+
+</main>
+
+<footer>
+  <span>Acton Math Circle · Grades 5–7</span>
+  <span>Problem 5 of 10 · Combinatorics</span>
+</footer>
+
+<script type="module">
+  import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue }
+                              from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  // ── FIREBASE ──────────────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+    authDomain:        "acton-math-circle.firebaseapp.com",
+    databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+    projectId:         "acton-math-circle",
+    storageBucket:     "acton-math-circle.firebasestorage.app",
+    messagingSenderId: "834678210381",
+    appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+  };
+  const app     = initializeApp(firebaseConfig);
+  const db      = getDatabase(app);
+  const gameRef = ref(db, 'frog/game-v3');
+
+  // ── LOCAL UI STATE ────────────────────────────────────────────
+  let selectedCell = -1;
+
+  // ── REMOTE STATE ──────────────────────────────────────────────
+  let state = null;
+
+  // ── DOM ───────────────────────────────────────────────────────
+  const boardTrack   = document.getElementById('boardTrack');
+  const moveCounter  = document.getElementById('moveCounter');
+  const bCount       = document.getElementById('bCount');
+  const gCount       = document.getElementById('gCount');
+  const statusMsg    = document.getElementById('statusMsg');
+  const logChips     = document.getElementById('logChips');
+  const bDisplay     = document.getElementById('bDisplay');
+  const gDisplay     = document.getElementById('gDisplay');
+  const bDown        = document.getElementById('bDown');
+  const bUp          = document.getElementById('bUp');
+  const gDown        = document.getElementById('gDown');
+  const gUp          = document.getElementById('gUp');
+  const resetBtn     = document.getElementById('resetBtn');
+  const undoBtn      = document.getElementById('undoBtn');
+  const switch2sp    = document.getElementById('switch2spaces');
+  const switchRed    = document.getElementById('switchRed');
+  const switchLong   = document.getElementById('switchLongJump');
+  const redLegend    = document.getElementById('redLegend');
+
+  // ── BOARD CONSTRUCTION ────────────────────────────────────────
+  // twoSpaces: two '_' in middle instead of one
+  // withRed:   one red frog per empty space inserted in middle
+  function makeBoard(nB, nG, twoSpaces, withRed) {
+    const empties = twoSpaces ? 2 : 1;
+    if (withRed) {
+      // Insert one R per empty slot between B's and G's
+      return [...Array(nB).fill('B'), ...Array(empties).fill('R'), ...Array(nG).fill('G')];
+    }
+    return [...Array(nB).fill('B'), ...Array(empties).fill('_'), ...Array(nG).fill('G')];
+  }
+
+  // Goal: all B's are on right, all G's on left, R's & empties anywhere in middle
+  function isGoal(board, nB, nG, withRed) {
+    // Count pieces and check positions
+    const len = board.length;
+    // Right side should have nB browns
+    // Left side should have nG greens
+    // Middle is everything else (empties + reds)
+    let gSeen = 0, bSeen = 0;
+    for (let i = 0; i < len; i++) {
+      if (board[i] === 'G') gSeen++;
+      else if (gSeen > 0 && board[i] === 'B') bSeen++;
+      // Once we've seen a non-G after greens, only B's and empties/reds allowed
+      else if (gSeen > 0 && board[i] === 'G') return false;
+    }
+    // Simpler: check first nG cells are all G, last nB cells are all B
+    for (let i = 0; i < nG; i++) if (board[i] !== 'G') return false;
+    for (let i = len - nB; i < len; i++) if (board[i] !== 'B') return false;
+    return true;
+  }
+
+  // ── LEGAL MOVES ───────────────────────────────────────────────
+  // longJump: can jump over 2 opposite frogs (not just 1)
+  function legalMoves(board, from, longJump) {
+    const piece = board[from];
+    if (piece === '_') return [];
+
+    // Directions: B→right(+1), G→left(-1), R→both
+    const dirs = piece === 'B' ? [1] : piece === 'G' ? [-1] : [1, -1];
+    const moves = [];
+
+    for (const dir of dirs) {
+      // Slide: one step into empty
+      const slide = from + dir;
+      if (slide >= 0 && slide < board.length && board[slide] === '_') {
+        moves.push(slide);
+      }
+
+      // Jump over 1 opposite frog
+      const mid1 = from + dir;
+      const jump1 = from + 2 * dir;
+      if (jump1 >= 0 && jump1 < board.length && board[jump1] === '_') {
+        const mp = board[mid1];
+        if (mp !== '_' && mp !== piece) moves.push(jump1);
+      }
+
+      // Long jump: over 2 opposite frogs (variation #5)
+      if (longJump) {
+        const mid2  = from + 2 * dir;
+        const jump2 = from + 3 * dir;
+        if (jump2 >= 0 && jump2 < board.length && board[jump2] === '_') {
+          const mp1 = board[from + dir];
+          const mp2 = board[from + 2 * dir];
+          if (mp1 !== '_' && mp1 !== piece && mp2 !== '_' && mp2 !== piece) {
+            moves.push(jump2);
+          }
+        }
+      }
+    }
+    return [...new Set(moves)];  // deduplicate
+  }
+
+  function allLegalFroms(board, longJump) {
+    const froms = [];
+    board.forEach((v, i) => {
+      if (v !== '_' && legalMoves(board, i, longJump).length > 0) froms.push(i);
+    });
+    return froms;
+  }
+
+  function isStuck(board, longJump) { return allLegalFroms(board, longJump).length === 0; }
+
+  // ── JUMP DISTANCE LABEL ───────────────────────────────────────
+  function moveLabel(dist) {
+    if (dist === 1) return 'slide';
+    if (dist === 2) return 'jump×1';
+    if (dist === 3) return 'jump×2';
+    return 'jump';
+  }
+
+  // ── DEFAULT STATE ─────────────────────────────────────────────
+  function defaultState(nB, nG, twoSpaces, withRed, longJump) {
+    return {
+      nB, nG,
+      twoSpaces: twoSpaces || false,
+      withRed:   withRed   || false,
+      longJump:  longJump  || false,
+      board:   makeBoard(nB, nG, twoSpaces, withRed),
+      moves:   0,
+      log:     [],
+      history: [],
+      solved:  false,
+      stuck:   false
+    };
+  }
+
+  // ── FIREBASE ──────────────────────────────────────────────────
+  async function pushState(s) { await set(gameRef, s); }
+
+  onValue(gameRef, (snap) => {
+    const data = snap.val();
+    if (!data) { pushState(defaultState(3, 3, false, false, false)); return; }
+    state = data;
+    if (state.nB === undefined) { pushState(defaultState(3, 3, false, false, false)); return; }
+
+    selectedCell = -1;
+    bDisplay.textContent = state.nB;
+    gDisplay.textContent = state.nG;
+    bCount.textContent   = state.nB;
+    gCount.textContent   = state.nG;
+
+    // Sync toggle switches
+    switch2sp.classList.toggle('on', !!state.twoSpaces);
+    switchRed.classList.toggle('on', !!state.withRed);
+    switchLong.classList.toggle('on', !!state.longJump);
+    redLegend.style.display = state.withRed ? 'flex' : 'none';
+
+    renderBoard();
+    renderStatus();
+    renderLog();
+  });
+
+  // ── RENDER BOARD ──────────────────────────────────────────────
+  function renderBoard() {
+    if (!state) return;
+    boardTrack.innerHTML = '';
+    const board    = state.board;
+    const longJump = state.longJump;
+    const froms    = state.solved || state.stuck ? [] : allLegalFroms(board, longJump);
+    const dests    = selectedCell >= 0 ? legalMoves(board, selectedCell, longJump) : [];
+
+    board.forEach((val, idx) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      if (val === '_') {
+        cell.classList.add('empty');
+        if (dests.includes(idx)) {
+          cell.classList.add('can-move-to');
+          cell.addEventListener('click', () => doMove(selectedCell, idx));
+          const dist = Math.abs(idx - selectedCell);
+          const arrow = document.createElement('span');
+          arrow.className = 'cell-arrow';
+          arrow.textContent = moveLabel(dist);
+          cell.appendChild(arrow);
+        }
+      } else {
+        const frog = document.createElement('div');
+        const cls  = val === 'B' ? 'brown' : val === 'G' ? 'green-frog' : 'red-frog';
+        frog.className = `frog ${cls}`;
+        frog.textContent = '🐸';
+        if (idx === selectedCell) {
+          frog.classList.add('selected');
+          frog.addEventListener('click', () => deselect());
+        } else if (froms.includes(idx)) {
+          frog.classList.add('can-move');
+          frog.addEventListener('click', () => selectFrog(idx));
+        } else {
+          frog.classList.add('blocked');
+        }
+        cell.appendChild(frog);
+      }
+      boardTrack.appendChild(cell);
+    });
+  }
+
+  // ── SELECT / DESELECT ─────────────────────────────────────────
+  function selectFrog(idx) {
+    selectedCell = idx;
+    renderBoard();
+    statusMsg.textContent = `Frog at position ${idx + 1} selected — click destination`;
+    statusMsg.className = 'status-msg';
+  }
+
+  function deselect() {
+    selectedCell = -1;
+    renderBoard();
+    statusMsg.textContent = 'Click a frog to select it';
+    statusMsg.className = 'status-msg';
+  }
+
+  // ── MOVE ──────────────────────────────────────────────────────
+  async function doMove(from, to) {
+    if (!state || state.solved || state.stuck) return;
+    const board    = [...state.board];
+    const piece    = board[from];
+    const dist     = Math.abs(to - from);
+    const type     = moveLabel(dist);
+    board[to]      = piece;
+    board[from]    = '_';
+    const newLog     = [...(state.log || []), { from, to, piece, type }];
+    const newHistory = [...(state.history || []), state.board];
+    const newMoves   = state.moves + 1;
+    const solved     = isGoal(board, state.nB, state.nG, state.withRed);
+    const stuck      = !solved && isStuck(board, state.longJump);
+    selectedCell = -1;
+    await pushState({ ...state, board, moves: newMoves, log: newLog, history: newHistory, solved, stuck });
+  }
+
+  // ── UNDO ──────────────────────────────────────────────────────
+  async function doUndo() {
+    if (!state || !state.history || state.history.length === 0) return;
+    const history   = [...state.history];
+    const prevBoard = history.pop();
+    const log       = [...(state.log || [])];
+    log.pop();
+    await pushState({ ...state, board: prevBoard, moves: state.moves - 1, log, history, solved: false, stuck: false });
+  }
+
+  // ── STATUS ────────────────────────────────────────────────────
+  function renderStatus() {
+    if (!state) return;
+    moveCounter.textContent = state.moves;
+    undoBtn.disabled = !state.history || state.history.length === 0;
+    if (state.solved) {
+      statusMsg.textContent = `🎉 Solved in ${state.moves} moves!`;
+      statusMsg.className = 'status-msg win';
+    } else if (state.stuck) {
+      statusMsg.textContent = '⚠ Stuck! No legal moves — use Undo or Reset';
+      statusMsg.className = 'status-msg stuck';
+    } else {
+      statusMsg.textContent = 'Click a frog to select it';
+      statusMsg.className = 'status-msg';
+    }
+  }
+
+  // ── LOG ───────────────────────────────────────────────────────
+  function renderLog() {
+    if (!state || !state.log || state.log.length === 0) {
+      logChips.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">No moves yet</span>';
+      return;
+    }
+    logChips.innerHTML = state.log.map(m => {
+      const isSlide = m.type === 'slide';
+      const cls = isSlide
+        ? (m.piece === 'B' ? 'slide-b' : m.piece === 'G' ? 'slide-g' : 'slide-r')
+        : (m.piece === 'B' ? 'jump-b'  : m.piece === 'G' ? 'jump-g'  : 'jump-r');
+      const icon  = m.piece === 'B' ? '🟤' : m.piece === 'G' ? '🟢' : '🔴';
+      const label = `${icon} ${m.type} ${m.from + 1}→${m.to + 1}`;
+      return `<span class="log-chip ${cls}">${label}</span>`;
+    }).join('');
+  }
+
+  // ── EVENTS ────────────────────────────────────────────────────
+  resetBtn.addEventListener('click', () => {
+    if (!state) return;
+    pushState(defaultState(state.nB, state.nG, state.twoSpaces, state.withRed, state.longJump));
+  });
+
+  undoBtn.addEventListener('click', doUndo);
+
+  bDown.addEventListener('click', () => {
+    if (!state || state.nB <= 1) return;
+    pushState(defaultState(state.nB - 1, state.nG, state.twoSpaces, state.withRed, state.longJump));
+  });
+  bUp.addEventListener('click', () => {
+    if (!state || state.nB >= 6) return;
+    pushState(defaultState(state.nB + 1, state.nG, state.twoSpaces, state.withRed, state.longJump));
+  });
+  gDown.addEventListener('click', () => {
+    if (!state || state.nG <= 1) return;
+    pushState(defaultState(state.nB, state.nG - 1, state.twoSpaces, state.withRed, state.longJump));
+  });
+  gUp.addEventListener('click', () => {
+    if (!state || state.nG >= 6) return;
+    pushState(defaultState(state.nB, state.nG + 1, state.twoSpaces, state.withRed, state.longJump));
+  });
+
+  document.getElementById('toggle2spaces').addEventListener('click', () => {
+    if (!state) return;
+    pushState(defaultState(state.nB, state.nG, !state.twoSpaces, state.withRed, state.longJump));
+  });
+
+  document.getElementById('toggleRed').addEventListener('click', () => {
+    if (!state) return;
+    pushState(defaultState(state.nB, state.nG, state.twoSpaces, !state.withRed, state.longJump));
+  });
+
+  document.getElementById('toggleLongJump').addEventListener('click', () => {
+    if (!state) return;
+    pushState(defaultState(state.nB, state.nG, state.twoSpaces, state.withRed, !state.longJump));
+  });
+
+</script>
+
+</body>
+</html>
