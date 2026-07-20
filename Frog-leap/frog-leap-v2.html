@@ -794,13 +794,20 @@
 
   // ── BOARD CONSTRUCTION ────────────────────────────────────────
   // twoSpaces: two '_' in middle instead of one
-  // withRed:   one red frog per empty space inserted in middle
+  // withRed:   adds red frogs in middle alongside empty spaces
+  // oneSpace:  BBB R _ GGG   (nB browns, 1 red, 1 empty, nG greens)
+  // twoSpaces: BBB R _ _ R GGG (nB browns, 1 red, 2 empties, 1 red, nG greens)
   function makeBoard(nB, nG, twoSpaces, withRed) {
-    const empties = twoSpaces ? 2 : 1;
     if (withRed) {
-      // Insert one R per empty slot between B's and G's
-      return [...Array(nB).fill('B'), ...Array(empties).fill('R'), ...Array(nG).fill('G')];
+      if (twoSpaces) {
+        // R _ _ R in the middle
+        return [...Array(nB).fill('B'), 'R', '_', '_', 'R', ...Array(nG).fill('G')];
+      } else {
+        // R _ in the middle
+        return [...Array(nB).fill('B'), 'R', '_', ...Array(nG).fill('G')];
+      }
     }
+    const empties = twoSpaces ? 2 : 1;
     return [...Array(nB).fill('B'), ...Array(empties).fill('_'), ...Array(nG).fill('G')];
   }
 
