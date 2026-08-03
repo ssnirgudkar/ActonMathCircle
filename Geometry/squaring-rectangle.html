@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acton Math Circle — Squaring the Rectangle</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink:      #1a1a2e;
+    --paper:    #faf8f3;
+    --accent:   #2e6b9e;
+    --rule:     #d6d0c4;
+    --pale:     #f0ece3;
+    --game-col: #6a3d9a;
+    --game-bg:  #f3eafa;
+    --game-bdr: #ce93d8;
+  }
+  body { background:var(--paper); color:var(--ink); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.7; padding:0 0 80px; }
+
+  header { background:var(--ink); color:#fff; padding:52px 40px 44px; position:relative; overflow:hidden; }
+  header::after { content:'□ ■ □ ■ □'; position:absolute; right:40px; top:32px; font-size:20px; color:rgba(255,255,255,0.07); letter-spacing:14px; }
+  .header-eyebrow { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#ce93d8; margin-bottom:12px; font-weight:500; }
+  header h1 { font-family:'Fraunces',serif; font-size:clamp(26px,5vw,44px); font-weight:600; line-height:1.15; max-width:620px; margin-bottom:14px; }
+  header h1 em { font-style:italic; font-weight:300; color:#ce93d8; }
+  header p.subtitle { font-size:14px; color:rgba(255,255,255,0.55); max-width:520px; }
+
+  .breadcrumb { padding:14px 40px; background:var(--pale); border-bottom:1px solid var(--rule); font-size:12px; color:#888; }
+  .breadcrumb a { color:var(--accent); text-decoration:none; }
+  .breadcrumb span { margin:0 6px; color:#ccc; }
+
+  .tag { display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; background:var(--game-bg); color:var(--game-col); border:1.5px solid var(--game-bdr); margin-bottom:18px; }
+
+  main { max-width:860px; margin:0 auto; padding:0 40px; }
+
+  .section-header { display:flex; align-items:center; gap:16px; margin:52px 0 24px; padding-bottom:12px; border-bottom:2px solid var(--ink); }
+  .section-icon { width:36px; height:36px; border-radius:50%; background:var(--game-bg); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  .section-header h2 { font-family:'Fraunces',serif; font-size:22px; font-weight:600; }
+  .section-header .concept { margin-left:auto; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#888; font-weight:500; white-space:nowrap; }
+
+  .problem-card { background:#fff; border:1px solid var(--rule); border-left:4px solid var(--game-col); border-radius:6px; padding:24px 28px; margin-bottom:20px; }
+  .card-header { display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .problem-num { font-family:'Fraunces',serif; font-size:28px; font-weight:300; color:var(--rule); line-height:1; flex-shrink:0; width:32px; }
+  .problem-title { font-family:'Fraunces',serif; font-size:18px; font-weight:600; }
+  .core-setup { font-size:14.5px; color:#333; }
+
+  .game-widget { background:#fff; border:1px solid var(--rule); border-radius:8px; overflow:hidden; margin-bottom:32px; }
+  .game-widget-header { background:var(--ink); color:#fff; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .widget-title { font-family:'Fraunces',serif; font-size:15px; font-weight:600; }
+  .widget-subtitle { font-size:11px; color:rgba(255,255,255,0.45); letter-spacing:1px; text-transform:uppercase; }
+
+  .config-bar { background:var(--pale); border-bottom:1px solid var(--rule); padding:14px 24px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  .config-group { display:flex; align-items:center; gap:8px; font-size:13px; color:#555; }
+  .config-group label { font-weight:500; white-space:nowrap; }
+  .cfg-btn { width:28px; height:28px; border-radius:50%; border:1.5px solid var(--rule); background:#fff; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--ink); transition:all 0.15s; padding:0; }
+  .cfg-btn:hover { border-color:var(--game-col); color:var(--game-col); }
+  .cfg-val { font-family:'Fraunces',serif; font-size:18px; font-weight:600; min-width:20px; text-align:center; }
+  .reset-btn { margin-left:auto; padding:6px 16px; background:var(--ink); color:#fff; border:none; border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity 0.15s; }
+  .reset-btn:hover { opacity:0.8; }
+  .hint-btn { padding:6px 14px; background:#fff; color:var(--game-col); border:1.5px solid var(--game-bdr); border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .hint-btn:hover { background:var(--game-bg); }
+
+  .status-bar { padding:12px 24px; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:16px; min-height:50px; flex-wrap:wrap; }
+  .step-counter { font-family:'Fraunces',serif; font-size:22px; font-weight:600; line-height:1; }
+  .step-label { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:#aaa; font-weight:500; }
+  .move-divider { width:1px; height:32px; background:var(--rule); flex-shrink:0; }
+  .rect-info { font-size:13px; color:#888; }
+  .rect-info strong { color:var(--ink); font-family:'Fraunces',serif; font-size:15px; }
+  .status-msg { margin-left:auto; font-size:13px; color:#888; font-style:italic; }
+  .status-msg.win { color:var(--game-col); font-style:normal; font-weight:600; font-family:'Fraunces',serif; font-size:15px; }
+  .status-msg.err { color:#c62828; font-style:normal; font-weight:500; }
+
+  .input-row { padding:16px 24px; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .input-label { font-size:13px; color:#555; font-weight:500; }
+  .size-input { width:72px; height:36px; border:1.5px solid var(--rule); border-radius:4px; font-family:'Fraunces',serif; font-size:18px; font-weight:600; text-align:center; color:var(--ink); background:#fff; outline:none; transition:border-color 0.15s; }
+  .size-input:focus { border-color:var(--game-col); }
+  .cut-btn { padding:8px 20px; background:var(--game-col); color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity 0.15s; }
+  .cut-btn:hover:not(:disabled) { opacity:0.85; }
+  .cut-btn:disabled { opacity:0.35; cursor:default; }
+  .quick-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .quick-btn { padding:6px 12px; background:var(--pale); color:var(--ink); border:1.5px solid var(--rule); border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .quick-btn:hover { border-color:var(--game-col); color:var(--game-col); background:var(--game-bg); }
+
+  .canvas-area { padding:32px 24px; display:flex; justify-content:center; background:#fdfcf9; }
+  #rectCanvas { display:block; border-radius:4px; }
+
+  .cut-log { padding:0 24px 20px; border-top:1px solid var(--rule); }
+  .log-label { font-size:10.5px; letter-spacing:2.5px; text-transform:uppercase; color:#bbb; font-weight:500; padding:14px 0 8px; }
+  .log-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .log-chip { padding:3px 10px; border-radius:12px; font-size:12px; border:1px solid var(--game-bdr); color:var(--game-col); background:var(--game-bg); font-weight:500; }
+  .log-chip.gcd { background:var(--ink); color:#fff; border-color:var(--ink); }
+
+  footer { max-width:860px; margin:60px auto 0; padding:24px 40px 0; border-top:1px solid var(--rule); font-size:12px; color:#aaa; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  @media(max-width:600px) {
+    header, main { padding-left:20px; padding-right:20px; }
+    .breadcrumb { padding-left:20px; }
+    .section-header .concept { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">Acton Math Circle · Grades 5–7</div>
+  <h1>Squaring the <em>Rectangle</em></h1>
+  <p class="subtitle">Can you cut any rectangle into squares? How many do you need? And what does this have to do with the GCD?</p>
+</header>
+
+<div class="breadcrumb">
+  <a href="index.html">← All Explorations</a>
+  <span>·</span>
+  Problem 9
+  <span>·</span>
+  Geometry
+</div>
+
+<main>
+
+  <div class="section-header">
+    <div class="section-icon">◭</div>
+    <h2>Geometry</h2>
+    <span class="concept">Shape, space, and structure</span>
+  </div>
+
+  <div class="tag">◭ Geometry</div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num">9</span>
+      <span class="problem-title">Squaring the Rectangle</span>
+    </div>
+    <div class="core-setup">
+      Can you cut a rectangle into squares — not necessarily equal? Try 2×3, 3×4, 4×6, and 2×5.
+      For each, what is the side length of the first square you cut off?
+      What do you notice about how the cutting process connects to GCD?
+    </div>
+  </div>
+
+  <div class="game-widget">
+
+    <div class="game-widget-header">
+      <div>
+        <div class="widget-title">Cut the Rectangle</div>
+        <div class="widget-subtitle">Type a square size and cut · Everyone sees the same board</div>
+      </div>
+    </div>
+
+    <div class="config-bar">
+      <div class="config-group">
+        <label>Width:</label>
+        <button class="cfg-btn" id="wDown">−</button>
+        <span class="cfg-val" id="wDisplay">3</span>
+        <button class="cfg-btn" id="wUp">+</button>
+      </div>
+      <div class="config-group">
+        <label>Height:</label>
+        <button class="cfg-btn" id="hDown">−</button>
+        <span class="cfg-val" id="hDisplay">8</span>
+        <button class="cfg-btn" id="hUp">+</button>
+      </div>
+      <button class="hint-btn" id="hintBtn">💡 Hint</button>
+      <button class="reset-btn" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="rect-info">Remaining: <strong id="remainingRect">3 × 8</strong></div>
+      <span class="status-msg" id="statusMsg">Type a square size and press Cut</span>
+    </div>
+
+    <div class="input-row">
+      <span class="input-label">Cut a square of side:</span>
+      <input class="size-input" type="number" id="sizeInput" min="1" max="99" placeholder="?">
+      <button class="cut-btn" id="cutBtn">Cut →</button>
+      <div class="quick-btns" id="quickBtns"></div>
+    </div>
+
+    <div class="canvas-area">
+      <canvas id="rectCanvas"></canvas>
+    </div>
+
+    <div class="cut-log">
+      <div class="log-label">Squares cut so far</div>
+      <div class="log-chips" id="logChips"><span style="font-size:13px;color:#ccc;font-style:italic;">No cuts yet</span></div>
+    </div>
+
+  </div>
+
+  <div class="section-header" style="margin-top:40px;">
+    <div class="section-icon">?</div>
+    <h2>Things to Discover</h2>
+    <span class="concept">Conjecture freely</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">①</span>
+      <span class="problem-title">What size is the first square?</span>
+    </div>
+    <div class="core-setup">
+      Try 2×3, 3×4, 4×6, 2×5. For each rectangle, what size is the first square you cut off? Is it always related to the dimensions in a simple way? What happens if you try to cut a square larger than the shorter side?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">②</span>
+      <span class="problem-title">The smallest square</span>
+    </div>
+    <div class="core-setup">
+      Keep cutting until you finish. What is the size of the final square? Try several rectangles — 4×6, 6×9, 3×12. What do you notice about the final square size and the two starting dimensions?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">③</span>
+      <span class="problem-title">Count the squares</span>
+    </div>
+    <div class="core-setup">
+      How many squares does it take to tile a 1×5? A 1×8? A 2×5? A 3×8? Build a table. Is there a connection between the number of squares and the steps of the Euclidean algorithm?
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="card-header">
+      <span class="problem-num" style="font-size:20px;">④</span>
+      <span class="problem-title">Special rectangles</span>
+    </div>
+    <div class="core-setup">
+      Which rectangles can be tiled with all equal squares? Try 2×4, 3×6, 4×8, 2×5. What is the condition? How does this connect to GCD being equal to one of the dimensions?
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>Acton Math Circle · Grades 5–7</span>
+  <span>Problem 9 of 10 · Geometry</span>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+  // ── FIREBASE ──────────────────────────────────────────────────
+  const app = initializeApp({
+    apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+    authDomain:        "acton-math-circle.firebaseapp.com",
+    databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+    projectId:         "acton-math-circle",
+    storageBucket:     "acton-math-circle.firebasestorage.app",
+    messagingSenderId: "834678210381",
+    appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+  });
+  const db      = getDatabase(app);
+  const gameRef = ref(db, 'squaring/game2');
+
+  // ── DOM ───────────────────────────────────────────────────────
+  const canvas        = document.getElementById('rectCanvas');
+  const ctx           = canvas.getContext('2d');
+  const stepCounter   = document.getElementById('stepCounter');
+  const remainingRect = document.getElementById('remainingRect');
+  const statusMsg     = document.getElementById('statusMsg');
+  const logChips      = document.getElementById('logChips');
+  const wDisplay      = document.getElementById('wDisplay');
+  const hDisplay      = document.getElementById('hDisplay');
+  const quickBtns     = document.getElementById('quickBtns');
+  const sizeInput     = document.getElementById('sizeInput');
+  const cutBtn        = document.getElementById('cutBtn');
+
+  // ── CONSTANTS ─────────────────────────────────────────────────
+  const PALETTE = [
+    '#9c6ade','#6a8fd8','#5bab7c','#d4845a','#d45a8a',
+    '#7ab3d4','#b4a04a','#8a6ad4','#4ab48a','#d4604a',
+    '#a05ab4','#5ab4b4','#b45a5a','#5a7ab4','#7ab45a',
+  ];
+  const PAD = 28;
+  const MAX = 440;
+
+  // ── STATE ─────────────────────────────────────────────────────
+  let state = null;
+
+  function defaultState(W, H) {
+    return { W, H, remW: W, remH: H, cuts: [], solved: false };
+  }
+
+  function sanitize(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return Object.keys(val).sort((a,b) => a-b).map(k => val[k]);
+  }
+
+  async function push(s) { await set(gameRef, s); }
+
+  // ── FIREBASE LISTENER ─────────────────────────────────────────
+  onValue(gameRef, snap => {
+    const d = snap.val();
+    if (!d) { push(defaultState(3, 8)); return; }
+    d.cuts = sanitize(d.cuts);
+    if (d.remW == null) { push(defaultState(d.W || 3, d.H || 8)); return; }
+    state = d;
+    wDisplay.textContent = state.W;
+    hDisplay.textContent = state.H;
+    draw();
+    updateLog();
+    updateUI();
+  });
+
+  // ── GEOMETRY HELPERS ──────────────────────────────────────────
+  // Replay cuts to get pixel positions of each square
+  function replay(W, H, cuts) {
+    let x = 0, y = 0, rW = W, rH = H;
+    const squares = [];
+    for (const c of cuts) {
+      squares.push({ x, y, size: c.size, color: c.color });
+      if (rW >= rH) { x += c.size; rW -= c.size; }
+      else          { y += c.size; rH -= c.size; }
+    }
+    return { squares, rx: x, ry: y, rW, rH };
+  }
+
+  function scale(W, H) {
+    return Math.min(Math.floor(MAX / W), Math.floor(MAX / H), 60);
+  }
+
+  // ── DRAW ──────────────────────────────────────────────────────
+  function draw() {
+    if (!state) return;
+    const { W, H, cuts, solved, remW, remH } = state;
+    const sc = scale(W, H);
+    canvas.width  = W * sc + PAD * 2;
+    canvas.height = H * sc + PAD * 2;
+    const ox = PAD, oy = PAD;
+
+    // Background rect
+    ctx.fillStyle = '#f5f3ee';
+    ctx.fillRect(ox, oy, W * sc, H * sc);
+
+    // Replay and draw each cut square
+    const { squares, rx, ry, rW, rH } = replay(W, H, cuts);
+
+    squares.forEach(({ x, y, size, color }) => {
+      const px = ox + x * sc, py = oy + y * sc, ps = size * sc;
+      ctx.fillStyle = color + 'dd';
+      ctx.fillRect(px + 1, py + 1, ps - 2, ps - 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 1, py + 1, ps - 2, ps - 2);
+      // Size label
+      const fs = Math.max(9, Math.min(24, ps * 0.3));
+      ctx.fillStyle = '#fff';
+      ctx.font = `600 ${fs}px 'DM Sans',sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(size, px + ps / 2, py + ps / 2);
+    });
+
+    // Remaining rectangle
+    if (rW > 0 && rH > 0) {
+      const px = ox + rx * sc, py = oy + ry * sc;
+      const pw = rW * sc,      ph = rH * sc;
+      ctx.fillStyle = solved ? '#e8f5e9' : '#fffef5';
+      ctx.fillRect(px + 1, py + 1, pw - 2, ph - 2);
+      ctx.strokeStyle = solved ? '#3a7d44' : '#6a3d9a';
+      ctx.lineWidth = solved ? 3 : 2;
+      ctx.setLineDash(solved ? [] : [5, 3]);
+      ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2);
+      ctx.setLineDash([]);
+      // Label inside remaining
+      const fs = Math.max(9, Math.min(22, Math.min(pw, ph) * 0.28));
+      ctx.fillStyle = solved ? '#3a7d44' : '#8a6ad4';
+      ctx.font = `${solved ? 600 : 400} ${fs}px 'DM Sans',sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(solved ? `${rW}` : `${rW}×${rH}`, px + pw / 2, py + ph / 2);
+    }
+
+    // Outer border
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.strokeRect(ox, oy, W * sc, H * sc);
+
+    // Dimension labels outside
+    ctx.fillStyle = '#aaa';
+    ctx.font = '11px DM Sans,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${W}`, ox + W * sc / 2, oy - 14);
+    ctx.save();
+    ctx.translate(ox - 16, oy + H * sc / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(`${H}`, 0, 0);
+    ctx.restore();
+  }
+
+  // ── UI UPDATE ─────────────────────────────────────────────────
+  function updateUI() {
+    if (!state) return;
+    const { cuts, solved, remW, remH } = state;
+
+    remainingRect.textContent = solved ? `${remW}×${remH} ✓` : `${remW} × ${remH}`;
+    cutBtn.disabled           = !!solved;
+    sizeInput.disabled        = !!solved;
+
+    if (solved) {
+      statusMsg.textContent = `🎉 Done!`;
+      statusMsg.className   = 'status-msg win';
+    } else if (cuts.length === 0) {
+      statusMsg.textContent = 'Type a square size and press Cut';
+      statusMsg.className   = 'status-msg';
+    }
+
+    // Quick pick buttons: required size highlighted, neighbours for exploration
+    quickBtns.innerHTML = '';
+    if (!solved) {
+      const required = Math.min(remW, remH);
+      [required - 1, required, required + 1].forEach(s => {
+        if (s < 1 || s > Math.max(remW, remH)) return;
+        const b = document.createElement('button');
+        b.className   = 'quick-btn';
+        b.textContent = s;
+        if (s === required) {
+          b.style.borderColor = 'var(--game-col)';
+          b.style.color       = 'var(--game-col)';
+          b.style.fontWeight  = '600';
+        }
+        b.addEventListener('click', () => { sizeInput.value = s; attemptCut(s); });
+        quickBtns.appendChild(b);
+      });
+    }
+  }
+
+  function updateLog() {
+    if (!state) return;
+    const { cuts, solved, remW } = state;
+    if (cuts.length === 0 && !solved) {
+      logChips.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">No cuts yet</span>';
+      return;
+    }
+    const all = [...cuts];
+    if (solved && remW > 0) {
+      all.push({ size: remW, color: PALETTE[cuts.length % PALETTE.length], isGcd: false });
+    }
+    logChips.innerHTML = all.map(c =>
+      `<span class="log-chip" style="border-color:${c.color};color:${c.color}">${c.size}×${c.size}</span>`
+    ).join('');
+  }
+
+  // ── CUT LOGIC ─────────────────────────────────────────────────
+  // Each cut MUST equal the shorter side — only then does the remainder stay rectangular.
+  // This is not just optimal strategy, it is the only geometrically valid cut.
+  async function attemptCut(raw) {
+    if (!state || state.solved) return;
+    const size = parseInt(raw, 10);
+    if (isNaN(size) || size <= 0) { showErr('Enter a positive whole number.'); return; }
+
+    const { remW, remH } = state;
+    const required = Math.min(remW, remH);
+
+    if (size !== required) {
+      if (size > required) {
+        showErr(`Too big — a ${size}×${size} square doesn't fit. The shorter side is ${required}.`);
+      } else {
+        showErr(`A ${size}×${size} square would leave an L-shape, not a rectangle. The cut must span the full shorter side: ${required}.`);
+      }
+      return;
+    }
+
+    const color   = PALETTE[state.cuts.length % PALETTE.length];
+    const newCuts = [...state.cuts, { size, color }];
+    let nW = remW, nH = remH;
+    if (remW >= remH) nW -= size; else nH -= size;
+    const solved = nW === nH || nW === 0 || nH === 0;
+
+    await push({ ...state, cuts: newCuts, remW: nW, remH: nH, solved });
+    sizeInput.value = '';
+    if (!solved) {
+      statusMsg.textContent = `Cut a ${size}×${size} square. Remaining: ${nW}×${nH}.`;
+      statusMsg.className   = 'status-msg';
+    }
+  }
+
+  function showErr(msg) {
+    statusMsg.textContent = msg;
+    statusMsg.className   = 'status-msg err';
+    setTimeout(() => {
+      if (state && !state.solved) {
+        statusMsg.textContent = 'Type a square size and press Cut';
+        statusMsg.className   = 'status-msg';
+      }
+    }, 3000);
+  }
+
+  // ── EVENTS ────────────────────────────────────────────────────
+  cutBtn.addEventListener('click', () => attemptCut(sizeInput.value));
+  sizeInput.addEventListener('keydown', e => { if (e.key === 'Enter') attemptCut(sizeInput.value); });
+
+  document.getElementById('hintBtn').addEventListener('click', () => {
+    if (!state || state.solved) return;
+    const v = Math.min(state.remW, state.remH);
+    sizeInput.value       = v;
+    statusMsg.textContent = `Hint: cut a square of side ${v}.`;
+    statusMsg.className   = 'status-msg';
+    sizeInput.focus();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!state) return;
+    push(defaultState(state.W, state.H));
+  });
+
+  document.getElementById('wDown').addEventListener('click', () => { if (state && state.W > 1)  push(defaultState(state.W-1, state.H)); });
+  document.getElementById('wUp')  .addEventListener('click', () => { if (state && state.W < 20) push(defaultState(state.W+1, state.H)); });
+  document.getElementById('hDown').addEventListener('click', () => { if (state && state.H > 1)  push(defaultState(state.W, state.H-1)); });
+  document.getElementById('hUp')  .addEventListener('click', () => { if (state && state.H < 20) push(defaultState(state.W, state.H+1)); });
+</script>
+
+</body>
+</html>
