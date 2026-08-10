@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acton Math Circle — Square Cliques (shared board)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --asphalt:#191C21;
+  --asphalt-2:#22262D;
+  --bed:#282D35;
+  --line:rgba(255,255,255,.085);
+  --line-strong:rgba(255,255,255,.16);
+  --chalk:#F2F4F7;
+  --ink:#E6E9ED;
+  --muted:#98A2AE;
+  --muted-2:#6E7885;
+  --good:#7CD98E;
+  --warn:#F0B429;
+  --bad:#F2705E;
+
+  --g1:#FFC533; --g2:#3FA96A; --g3:#3D8FD1; --g4:#21A79B;
+  --g5:#C6D62E; --g6:#E9633B; --g7:#8B6FE0; --g8:#E8629B;
+  --g9:#C88A2E; --g10:#5B7C99; --g11:#B45CC0; --g12:#4CBFE0;
+  --g13:#94A83D; --g14:#D9455F; --g15:#6E8E5A; --g16:#A0785C;
+
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"DM Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #23272F 0%, rgba(35,39,47,0) 60%),
+    var(--asphalt);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 56px}
+
+header{margin-bottom:14px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--g1);margin:0 0 8px;font-weight:600}
+h1{
+  font-family:var(--display);font-weight:800;
+  font-size:clamp(28px,5vw,46px);letter-spacing:-.025em;margin:0 0 6px;line-height:1;
+}
+h1 .dot{color:var(--g1)}
+.dek{margin:0;max-width:58ch;color:var(--muted);font-size:14.5px}
+.credit{margin:9px 0 0;font-size:12.5px;color:var(--muted-2)}
+.credit a{color:var(--muted);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.18)}
+
+/* live status chip */
+.whoami{
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  background:var(--asphalt-2);border:1px solid var(--line);border-radius:12px;padding:9px 13px;
+}
+.me{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink)}
+.me .tok{width:18px;height:18px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.conn{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.conn .led{width:8px;height:8px;border-radius:50%;background:var(--muted-2);box-shadow:0 0 0 0 rgba(0,0,0,0)}
+.conn.on .led{background:var(--good);box-shadow:0 0 8px rgba(124,217,142,.7)}
+.conn.off .led{background:var(--bad)}
+.conn.wait .led{background:var(--warn)}
+
+/* banner shown when config missing / offline */
+.banner{
+  display:none;margin:0 0 16px;padding:11px 14px;border-radius:12px;
+  background:rgba(240,180,41,.10);border:1px solid rgba(240,180,41,.34);
+  color:var(--warn);font-size:13.5px;
+}
+.banner.show{display:block}
+.banner code{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:#12151A;padding:1px 5px;border-radius:5px}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) 344px;gap:24px;align-items:start}
+@media (max-width:900px){ main{grid-template-columns:minmax(0,1fr)} }
+
+.stage{min-width:0}
+.boardframe{background:var(--asphalt-2);border:1px solid var(--line);border-radius:16px;padding:14px}
+.board{
+  position:relative;width:100%;aspect-ratio:1/1;background-color:var(--bed);
+  border-radius:8px;touch-action:manipulation;cursor:crosshair;overflow:hidden;
+  --cell:calc(100% / var(--n));
+}
+.board.locked{cursor:not-allowed}
+.board::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px var(--cell)),
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px var(--cell));
+  border-radius:8px;
+}
+.board::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line-strong)}
+.sq{
+  position:absolute;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-weight:800;color:rgba(0,0,0,.62);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);animation:pop .16s ease-out;user-select:none;
+}
+@keyframes pop{from{transform:scale(.82);opacity:.3}to{transform:scale(1);opacity:1}}
+.sq.mine{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16), 0 0 0 2px rgba(242,244,247,.5)}
+@media (prefers-reduced-motion:reduce){ .sq{animation:none} }
+.sq .who{
+  position:absolute;left:4px;top:3px;width:14px;height:14px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:500;font-size:9px;color:#fff;
+  box-shadow:0 0 0 1px rgba(0,0,0,.25);
+}
+.sq .eyes{position:absolute;top:16%;display:flex;gap:14%;width:46%;justify-content:space-between}
+.sq .eyes i{display:block;width:100%;aspect-ratio:1;background:#fff;border-radius:50%;position:relative}
+.sq .eyes i::after{content:"";position:absolute;left:26%;top:34%;width:44%;height:44%;background:#14161A;border-radius:50%}
+
+.ghost{position:absolute;pointer-events:none;border-radius:5px;border:2px dashed rgba(255,255,255,.75);background:rgba(255,255,255,.10);display:none}
+.ghost.bad{border-color:var(--bad);background:rgba(242,112,94,.14)}
+.trace{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.trace path{fill:none;stroke:var(--chalk);stroke-width:3;stroke-linecap:square;stroke-dasharray:7 5;animation:march 1.1s linear infinite;filter:drop-shadow(0 0 4px rgba(0,0,0,.6))}
+@keyframes march{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion:reduce){ .trace path{animation:none} }
+
+.statusbar{margin-top:12px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.statusbar b{color:var(--ink);font-weight:500}
+.verdict{display:none;margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(124,217,142,.12);border:1px solid rgba(124,217,142,.35);color:var(--good);font-family:var(--display);font-weight:600;font-size:16px}
+.verdict.show{display:block}
+.verdict small{display:block;font-family:var(--body);font-weight:400;color:var(--muted);font-size:13px;margin-top:3px}
+
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--asphalt-2);border:1px solid var(--line);border-radius:14px;padding:14px 15px}
+.card h2{font-family:var(--body);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-2);margin:0 0 11px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lockchip{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted-2);border:1px solid var(--line);border-radius:20px;padding:2px 8px;cursor:pointer;text-transform:none}
+.lockchip.on{color:var(--g1);border-color:rgba(255,197,51,.4)}
+.gated{opacity:.4;pointer-events:none}
+
+.sizerow{display:flex;align-items:center;gap:10px}
+.stepper{display:flex;align-items:center;gap:2px;background:#171A1F;border:1px solid var(--line);border-radius:10px;padding:3px}
+.stepper button{width:32px;height:32px;border:0;border-radius:7px;background:transparent;color:var(--ink);font-size:19px;line-height:1;cursor:pointer;font-family:var(--body)}
+.stepper button:hover{background:rgba(255,255,255,.08)}
+.stepper span{min-width:62px;text-align:center;font-family:var(--mono);font-size:15px}
+.sizehint{font-size:12.5px;color:var(--muted-2)}
+
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{min-width:32px;height:32px;padding:0 8px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,.16);background:transparent;color:var(--muted);font-family:var(--mono);font-size:13px}
+.pill[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:rgba(0,0,0,.72);font-weight:500}
+.pill:hover{border-color:rgba(255,255,255,.4)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative;cursor:pointer;border:0;border-radius:10px;padding:0;width:52px;height:52px;background:var(--c);color:rgba(0,0,0,.7);font-family:var(--display);font-weight:800;font-size:19px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.chip small{position:absolute;right:4px;bottom:2px;font-family:var(--mono);font-weight:400;font-size:10px;color:rgba(0,0,0,.5)}
+.chip[aria-pressed="true"]{outline:2.5px solid var(--chalk);outline-offset:2px}
+.chip:focus-visible,.pill:focus-visible,button:focus-visible{outline:2.5px solid var(--g1);outline-offset:2px}
+.empty-note{font-size:12.5px;color:var(--muted-2);margin:0}
+
+table.report{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+table.report th{text-align:left;font-family:var(--body);font-weight:600;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);padding:0 0 6px}
+table.report th.n,table.report td.n{text-align:right}
+table.report tr.row:hover td{background:rgba(255,255,255,.05)}
+table.report td{padding:5px 4px;border-top:1px solid var(--line)}
+table.report td:first-child{padding-left:0}
+table.report td:last-child{padding-right:0}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--c);vertical-align:-2px;margin-right:7px}
+.split{color:var(--warn)}
+tr.dim td{color:var(--muted-2)}
+.spread{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line)}
+.spread .lbl{font-size:12px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.1em}
+.spread .val{font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
+.spread .val.zero{color:var(--good)}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid rgba(255,255,255,.18);background:transparent;color:var(--ink);border-radius:9px;padding:8px 12px;font-size:13px;cursor:pointer;font-family:var(--body)}
+.btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.34)}
+.btn.ghostly{color:var(--muted)}
+
+.roster{display:flex;flex-wrap:wrap;gap:6px}
+.rtok{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 9px 3px 4px}
+.rtok .d{width:14px;height:14px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.rtok.self{color:var(--ink);border-color:var(--line-strong)}
+
+.challenge{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:1px solid var(--line);background:#171A1F;border-radius:10px;padding:9px 11px;margin-bottom:7px;cursor:pointer;color:var(--ink);text-align:left;font-family:var(--body);font-size:13.5px}
+.challenge:hover{border-color:rgba(255,255,255,.3);background:#1B1F25}
+.challenge .goal{font-family:var(--mono);font-size:11.5px;color:var(--muted-2);white-space:nowrap}
+.challenge[aria-current="true"]{border-color:var(--g1);box-shadow:0 0 0 1px rgba(255,197,51,.3) inset}
+
+details.spoiler{margin-top:4px}
+details.spoiler summary{cursor:pointer;font-size:12.5px;color:var(--muted-2);list-style:none;padding:6px 0}
+details.spoiler summary::-webkit-details-marker{display:none}
+details.spoiler summary::before{content:"▸ ";color:var(--muted-2)}
+details.spoiler[open] summary::before{content:"▾ "}
+details.spoiler summary:hover{color:var(--ink)}
+.spoilbody{display:flex;flex-wrap:wrap;gap:7px;padding:4px 0 2px}
+
+.howto{font-size:13px;color:var(--muted);margin:0}
+.howto li{margin:0 0 5px}
+.howto ul{margin:0;padding-left:17px}
+kbd{font-family:var(--mono);font-size:11px;background:#12151A;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <p class="eyebrow">Acton Math Circle · one shared playground</p>
+    <h1>Square Cliques<span class="dot">.</span></h1>
+    <p class="dek">Everyone builds on the same board at once. Fill it with squares so every grade stays connected and all the perimeters match.</p>
+  </div>
+  <div class="whoami">
+    <div class="me"><span class="tok" id="meTok"></span><span id="meName">…</span></div>
+    <div class="conn wait" id="conn"><span class="led"></span><span id="connLabel">connecting…</span></div>
+  </div>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<main>
+  <section class="stage">
+    <div class="boardframe">
+      <div id="board" class="board" style="--n:10">
+        <svg id="trace" class="trace" viewBox="0 0 10 10" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div id="ghost" class="ghost"></div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span>Filled <b id="stFilled">0</b> / <b id="stTotal">100</b></span>
+      <span>Squares placed <b id="stCount">0</b></span>
+      <span id="stSplit"></span>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+  </section>
+
+  <aside class="panel">
+
+    <div class="card">
+      <h2>In the room now</h2>
+      <div class="roster" id="roster"><span class="empty-note">just you so far</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Playground <button type="button" class="lockchip" id="lockChip" title="When locked, only unlock here to change size or grades">🔒 teacher</button></h2>
+      <div class="sizerow" id="sizeCtrl">
+        <div class="stepper">
+          <button type="button" id="minus" aria-label="Smaller playground">−</button>
+          <span id="sizeLabel">10 × 10</span>
+          <button type="button" id="plus" aria-label="Bigger playground">+</button>
+        </div>
+        <span class="sizehint" id="sizeHint">100 cells</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Grades at school today</h2>
+      <div class="pills" id="pills"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pick a grade, then tap the board</h2>
+      <div class="chips" id="chips"></div>
+      <p class="empty-note" id="chipNote" style="display:none">No grades are at school. A teacher can turn one on above.</p>
+    </div>
+
+    <div class="card">
+      <h2>Report card</h2>
+      <table class="report">
+        <thead><tr><th>Grade</th><th class="n">Squares</th><th class="n">Cells</th><th class="n">Perimeter</th></tr></thead>
+        <tbody id="report"></tbody>
+      </table>
+      <div class="spread"><span class="lbl">Spread</span><span class="val" id="spreadVal">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Board</h2>
+      <div class="actions">
+        <button class="btn" type="button" id="undoMine">Undo my last</button>
+        <button class="btn ghostly" type="button" id="clear">Clear shared board</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Challenges</h2>
+      <div id="challenges"></div>
+      <details class="spoiler">
+        <summary>Show a solution (teacher)</summary>
+        <div class="spoilbody" id="spoilbody"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <div class="howto">
+        <ul>
+          <li>Tap an empty cell to drop a square with its <em>top-left corner</em> there.</li>
+          <li>Tap any square to take it away — anyone can remove anyone's.</li>
+          <li>Your own squares have a white outline; the corner tag shows who placed each one.</li>
+          <li>Hover a report-card row to trace that grade's perimeter in chalk.</li>
+        </ul>
+      </div>
+    </div>
+
+  </aside>
+</main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, set, update, remove, onValue, onDisconnect, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+/* ============================================================
+   FIREBASE  — same project & Realtime Database as nim.html
+   Shared board lives at:  squarecliques/room
+   ============================================================ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+  authDomain:        "acton-math-circle.firebaseapp.com",
+  databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+  projectId:         "acton-math-circle",
+  storageBucket:     "acton-math-circle.firebasestorage.app",
+  messagingSenderId: "834678210381",
+  appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+};
+
+const ROOM = "squarecliques/room";   // change this string to run a second, separate room
+
+let app, db, roomRef, presenceRef, connLive = false;
+try {
+  app = initializeApp(firebaseConfig);
+  db  = getDatabase(app);
+  roomRef = ref(db, ROOM);
+} catch (e) {
+  showBanner(`Couldn't start Firebase (<code>${String(e.message||e)}</code>). The board still works locally, but nothing is shared.`);
+}
+
+/* ============================================================
+   CONSTANTS + COLORS
+   ============================================================ */
+const MIN_N = 4, MAX_N = 16;
+const css = getComputedStyle(document.documentElement);
+const COLORS = {};
+for (let k = 1; k <= MAX_N; k++) COLORS[k] = css.getPropertyValue('--g'+k).trim();
+
+// distinct per-student token colors (wrap after 12)
+const USER_COLORS = ['#F2705E','#4CBFE0','#7CD98E','#F0B429','#B45CC0','#E8629B',
+                     '#5B7C99','#C6D62E','#E9633B','#8B6FE0','#21A79B','#A0785C'];
+
+/* ============================================================
+   IDENTITY  (anonymous, auto-assigned, remembered per browser)
+   ============================================================ */
+const me = makeIdentity();
+function makeIdentity(){
+  let id = null;
+  try { id = localStorage.getItem('sc-uid'); } catch(e){}
+  if (!id){ id = 'u' + Math.random().toString(36).slice(2,8); try{ localStorage.setItem('sc-uid', id);}catch(e){} }
+  const seat = (parseInt(id.slice(1), 36) % 999);   // stable-ish number
+  return { id, num: (seat % 48) + 1, color: USER_COLORS[(seat) % USER_COLORS.length] };
+}
+document.getElementById('meTok').style.background = me.color;
+document.getElementById('meName').textContent = 'Student ' + me.num;
+
+/* ============================================================
+   SHARED STATE  (mirrors the RTDB snapshot at ROOM)
+   shape: { n, inPlay:{2:true,...}, locked:bool, squares:{ key:{s,r,c,by,byNum,byColor} } }
+   ============================================================ */
+let S = defaultRoom();
+function defaultRoom(){
+  return { n: 10, inPlay: {1:true,2:true,3:true,4:true}, locked: true, squares: {} };
+}
+
+// local-only view state (never synced)
+let brush = 1;
+let tracing = null;
+
+// derived
+let N = S.n;
+let grid = [];                 // N*N of square-key or null
+function inPlaySet(){ return new Set(Object.keys(S.inPlay||{}).filter(k=>S.inPlay[k]).map(Number)); }
+
+const board    = document.getElementById('board');
+const traceSvg = document.getElementById('trace');
+const ghost    = document.getElementById('ghost');
+
+/* ============================================================
+   GRID + GEOMETRY  (unchanged math from single-player)
+   ============================================================ */
+function rebuildGrid(){
+  N = S.n;
+  grid = new Array(N*N).fill(null);
+  for (const [key, sq] of Object.entries(S.squares||{})){
+    for (let i=sq.r; i<sq.r+sq.s; i++)
+      for (let j=sq.c; j<sq.c+sq.s; j++)
+        if (i>=0&&j>=0&&i<N&&j<N) grid[i*N+j] = key;
+  }
+}
+const at = (r,c) => grid[r*N + c];
+
+function canPlace(size, r, c){
+  if (r<0||c<0||r+size>N||c+size>N) return false;
+  for (let i=r;i<r+size;i++) for (let j=c;j<c+size;j++) if (grid[i*N+j]!=null) return false;
+  return true;
+}
+function cellsOfSize(size){
+  const set = new Set();
+  for (const sq of Object.values(S.squares||{})) if (sq.s===size)
+    for (let i=sq.r;i<sq.r+sq.s;i++) for (let j=sq.c;j<sq.c+sq.s;j++) set.add(i*N+j);
+  return set;
+}
+function perimeterOf(set){
+  let adj=0;
+  for (const idx of set){
+    const r=Math.floor(idx/N), c=idx%N;
+    if (c+1<N && set.has(idx+1)) adj++;
+    if (r+1<N && set.has(idx+N)) adj++;
+  }
+  return 4*set.size - 2*adj;
+}
+function componentsOf(set){
+  const seen=new Set(); let groups=0;
+  for (const start of set){
+    if (seen.has(start)) continue;
+    groups++; const st=[start]; seen.add(start);
+    while (st.length){
+      const idx=st.pop(), r=Math.floor(idx/N), c=idx%N;
+      if (c>0     && set.has(idx-1) && !seen.has(idx-1)){seen.add(idx-1);st.push(idx-1);}
+      if (c+1<N   && set.has(idx+1) && !seen.has(idx+1)){seen.add(idx+1);st.push(idx+1);}
+      if (r>0     && set.has(idx-N) && !seen.has(idx-N)){seen.add(idx-N);st.push(idx-N);}
+      if (r+1<N   && set.has(idx+N) && !seen.has(idx+N)){seen.add(idx+N);st.push(idx+N);}
+    }
+  }
+  return groups;
+}
+function analyse(){
+  const list = Object.values(S.squares||{});
+  const used = [...new Set(list.map(s=>s.s))].sort((a,b)=>a-b);
+  const rows = used.map(size=>{
+    const set = cellsOfSize(size);
+    return { size, squares:list.filter(s=>s.s===size).length, cells:set.size,
+             perimeter:perimeterOf(set), groups:componentsOf(set) };
+  });
+  const filled = grid.reduce((n,v)=>n+(v!=null?1:0),0);
+  const per = rows.map(r=>r.perimeter);
+  return { rows, filled, full: filled===N*N,
+           spread: per.length ? Math.max(...per)-Math.min(...per) : null,
+           allConnected: rows.every(r=>r.groups===1),
+           unusedInPlay: [...inPlaySet()].filter(k=>!used.includes(k)).sort((a,b)=>a-b) };
+}
+
+/* ============================================================
+   WRITES TO FIREBASE  (or local fallback if offline)
+   ============================================================ */
+function keyFor(r,c,s){ return `${r}_${c}_${s}`; }
+
+async function writeSquare(size, r, c){
+  const key = keyFor(r,c,size);
+  const rec = { s:size, r, c, by:me.id, byNum:me.num, byColor:me.color, t:Date.now() };
+  if (roomRef && connLive){
+    try { await update(ref(db, `${ROOM}/squares`), { [key]: rec }); return; } catch(e){}
+  }
+  S.squares[key] = rec; applyLocal();
+}
+async function eraseSquare(key){
+  if (roomRef && connLive){
+    try { await remove(ref(db, `${ROOM}/squares/${key}`)); return; } catch(e){}
+  }
+  delete S.squares[key]; applyLocal();
+}
+async function writeConfig(patch){
+  Object.assign(S, patch);
+  if (roomRef && connLive){
+    try { await update(roomRef, patch); return; } catch(e){}
+  }
+  applyLocal();
+}
+async function clearBoard(){
+  if (roomRef && connLive){ try { await set(ref(db, `${ROOM}/squares`), null); return; } catch(e){} }
+  S.squares = {}; applyLocal();
+}
+
+/* ============================================================
+   LISTEN  (onValue → rebuild + render for everyone)
+   ============================================================ */
+if (roomRef){
+  onValue(roomRef, snap => {
+    const data = snap.val();
+    if (data == null){
+      // first client seeds the room
+      if (connLive) set(roomRef, defaultRoom());
+      S = defaultRoom();
+    } else {
+      S = { n: data.n||10, inPlay: data.inPlay||{}, locked: data.locked!==false, squares: data.squares||{} };
+    }
+    if (brush==null || !inPlaySet().has(brush)) brush = [...inPlaySet()].sort((a,b)=>a-b)[0] ?? null;
+    applyLocal();
+  }, err => {
+    setConn('off','database read blocked');
+    showBanner(`Realtime Database refused the read (<code>${String(err.code||err.message||err)}</code>). Check the database rules for <code>${ROOM}</code>. The board runs locally meanwhile.`);
+  });
+
+  // connection LED
+  onValue(ref(db, '.info/connected'), snap => {
+    connLive = !!snap.val();
+    if (connLive){ setConn('on','live · shared'); joinPresence(); }
+    else setConn('off','offline');
+  });
+}
+
+/* ============================================================
+   PRESENCE  (who's in the room)
+   ============================================================ */
+function joinPresence(){
+  if (!db) return;
+  presenceRef = ref(db, `${ROOM}/presence/${me.id}`);
+  set(presenceRef, { num: me.num, color: me.color, t: serverTimestamp() });
+  onDisconnect(presenceRef).remove();
+  onValue(ref(db, `${ROOM}/presence`), snap => renderRoster(snap.val()||{}));
+}
+function renderRoster(p){
+  const host = document.getElementById('roster');
+  const ids = Object.keys(p);
+  if (!ids.length){ host.innerHTML = '<span class="empty-note">just you so far</span>'; return; }
+  host.innerHTML = '';
+  ids.sort((a,b)=>(p[a].num||0)-(p[b].num||0)).forEach(id=>{
+    const el = document.createElement('span');
+    el.className = 'rtok' + (id===me.id?' self':'');
+    el.innerHTML = `<span class="d" style="background:${p[id].color||'#888'}"></span>Student ${p[id].num||'?'}${id===me.id?' (you)':''}`;
+    host.appendChild(el);
+  });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function applyLocal(){
+  rebuildGrid();
+  document.getElementById('sizeLabel').textContent = `${N} × ${N}`;
+  document.getElementById('sizeHint').textContent  = `${N*N} cells`;
+  syncLock();
+  renderPills(); renderChips();
+  const a = analyse();
+  renderBoard(a); renderReport(a); renderStatus(a); markChallenge();
+}
+
+function isSolved(a){ return a.full && a.allConnected && a.rows.length>=2 && a.spread===0; }
+
+function renderBoard(a){
+  board.style.setProperty('--n', N);
+  traceSvg.setAttribute('viewBox', `0 0 ${N} ${N}`);
+  [...board.querySelectorAll('.sq')].forEach(el=>el.remove());
+  const pct = 100/N;
+  const list = Object.entries(S.squares||{});
+  const biggest = list.length ? Math.max(...list.map(([,s])=>s.s)) : 0;
+  const solved = isSolved(a);
+  let eyesGiven = false;
+
+  for (const [key, s] of list){
+    const el = document.createElement('div');
+    el.className = 'sq' + (s.by===me.id ? ' mine':'');
+    el.dataset.key = key;
+    el.style.left=(s.c*pct)+'%'; el.style.top=(s.r*pct)+'%';
+    el.style.width=(s.s*pct)+'%'; el.style.height=(s.s*pct)+'%';
+    el.style.background = COLORS[s.s]||'#888';
+    el.style.fontSize = `clamp(9px, ${s.s*pct*0.34}cqw, 34px)`;
+    el.textContent = s.s;
+    if (s.byNum!=null){
+      const tag=document.createElement('span'); tag.className='who';
+      tag.style.background = s.byColor||'#555'; tag.textContent = s.byNum;
+      el.appendChild(tag);
+    }
+    if (solved && s.s===biggest && !eyesGiven){
+      eyesGiven=true;
+      const eyes=document.createElement('div'); eyes.className='eyes'; eyes.innerHTML='<i></i><i></i>';
+      el.appendChild(eyes);
+    }
+    board.appendChild(el);
+  }
+  drawTrace();
+}
+
+function drawTrace(){
+  traceSvg.innerHTML='';
+  if (tracing==null) return;
+  const set = cellsOfSize(tracing);
+  if (!set.size) return;
+  let d='';
+  for (const idx of set){
+    const r=Math.floor(idx/N), c=idx%N;
+    if (!set.has(idx-N)||r===0)   d+=`M${c} ${r}L${c+1} ${r}`;
+    if (!set.has(idx+N)||r===N-1) d+=`M${c} ${r+1}L${c+1} ${r+1}`;
+    if (c===0||!set.has(idx-1))   d+=`M${c} ${r}L${c} ${r+1}`;
+    if (c===N-1||!set.has(idx+1)) d+=`M${c+1} ${r}L${c+1} ${r+1}`;
+  }
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',d); p.setAttribute('vector-effect','non-scaling-stroke');
+  traceSvg.appendChild(p);
+}
+
+function renderPills(){
+  const host=document.getElementById('pills'); host.innerHTML='';
+  const play=inPlaySet();
+  for (let k=1;k<=N;k++){
+    const b=document.createElement('button');
+    b.type='button'; b.className='pill'; b.textContent=k;
+    b.style.setProperty('--c', COLORS[k]||'#888');
+    b.setAttribute('aria-pressed', play.has(k)?'true':'false');
+    b.onclick = () => {
+      const next={...(S.inPlay||{})};
+      if (play.has(k)){
+        if (Object.values(S.squares||{}).some(s=>s.s===k) &&
+            !confirm(`Grade ${k} still has squares on the board. Remove those squares too?`)) return;
+        delete next[k];
+        // strip that grade's squares
+        const kills=Object.entries(S.squares||{}).filter(([,s])=>s.s===k).map(([kk])=>kk);
+        writeConfig({inPlay:next}).then(()=>kills.forEach(eraseSquare));
+      } else {
+        next[k]=true; brush=k; writeConfig({inPlay:next});
+      }
+    };
+    host.appendChild(b);
+  }
+  document.getElementById('pills').classList.toggle('gated', S.locked);
+}
+
+function renderChips(){
+  const host=document.getElementById('chips'), note=document.getElementById('chipNote');
+  host.innerHTML='';
+  const sizes=[...inPlaySet()].sort((a,b)=>a-b);
+  note.style.display = sizes.length?'none':'block';
+  if (brush!=null && !inPlaySet().has(brush)) brush=sizes[0]??null;
+  for (const k of sizes){
+    const b=document.createElement('button');
+    b.type='button'; b.className='chip';
+    b.style.setProperty('--c', COLORS[k]||'#888');
+    b.setAttribute('aria-pressed', brush===k?'true':'false');
+    b.innerHTML=`${k}<small>${k}×${k}</small>`;
+    b.onclick=()=>{ brush=k; renderChips(); };
+    b.onmouseenter=()=>{ tracing=k; drawTrace(); };
+    b.onmouseleave=()=>{ tracing=null; drawTrace(); };
+    host.appendChild(b);
+  }
+}
+
+function renderReport(a){
+  const body=document.getElementById('report'); body.innerHTML='';
+  const shown=[...new Set([...a.rows.map(r=>r.size), ...inPlaySet()])].sort((x,y)=>x-y);
+  for (const size of shown){
+    const row=a.rows.find(r=>r.size===size);
+    const tr=document.createElement('tr');
+    tr.className = row?'row':'row dim';
+    tr.innerHTML=
+      `<td><span class="swatch" style="--c:${COLORS[size]||'#888'}"></span>${size}${
+        row&&row.groups>1?` <span class="split">split ×${row.groups}</span>`:''}</td>`+
+      `<td class="n">${row?row.squares:'—'}</td>`+
+      `<td class="n">${row?row.cells:'—'}</td>`+
+      `<td class="n">${row?row.perimeter:'—'}</td>`;
+    tr.onmouseenter=()=>{ tracing=size; drawTrace(); };
+    tr.onmouseleave=()=>{ tracing=null; drawTrace(); };
+    body.appendChild(tr);
+  }
+  const sv=document.getElementById('spreadVal');
+  if (a.spread==null||a.rows.length<2){ sv.textContent='—'; sv.className='val'; }
+  else { sv.textContent=a.spread; sv.className='val'+(a.spread===0?' zero':''); }
+}
+
+function renderStatus(a){
+  document.getElementById('stFilled').textContent=a.filled;
+  document.getElementById('stTotal').textContent=N*N;
+  document.getElementById('stCount').textContent=Object.keys(S.squares||{}).length;
+  const split=a.rows.filter(r=>r.groups>1);
+  document.getElementById('stSplit').innerHTML =
+    split.length?`<b style="color:var(--warn)">Grade ${split.map(r=>r.size).join(', ')} is not in one group</b>`:'';
+
+  const v=document.getElementById('verdict');
+  if (isSolved(a)){
+    const missing=a.unusedInPlay.length?`<small>Grade ${a.unusedInPlay.join(', ')} stayed home — try again with everyone playing.</small>`:'';
+    v.className='verdict show'; v.style.cssText='';
+    v.innerHTML=`Fair playground! Every grade has perimeter ${a.rows[0].perimeter}.${missing}`;
+  } else if (a.full && a.allConnected && a.rows.length>=2){
+    v.className='verdict show';
+    v.style.cssText='background:rgba(255,197,51,.10);border-color:rgba(255,197,51,.32);color:var(--warn)';
+    v.innerHTML=`Board full — spread ${a.spread}. <small>Perimeters: ${a.rows.map(r=>r.size+'→'+r.perimeter).join('  ')}</small>`;
+  } else { v.className='verdict'; v.style.cssText=''; }
+}
+
+/* ============================================================
+   LOCK (teacher gate for size + grades)
+   ============================================================ */
+const lockChip=document.getElementById('lockChip');
+function syncLock(){
+  lockChip.classList.toggle('on', !S.locked);
+  lockChip.textContent = S.locked ? '🔒 teacher' : '🔓 open';
+  document.getElementById('sizeCtrl').classList.toggle('gated', S.locked);
+  document.getElementById('pills').classList.toggle('gated', S.locked);
+  board.classList.remove('locked');
+}
+lockChip.onclick = () => {
+  if (S.locked){
+    if (!confirm('Unlock size and grade controls for the whole room? Students will be able to change them.')) return;
+    writeConfig({locked:false});
+  } else writeConfig({locked:true});
+};
+
+/* ============================================================
+   INTERACTION
+   ============================================================ */
+function cellFromEvent(e){
+  const b=board.getBoundingClientRect();
+  const c=Math.floor((e.clientX-b.left)/(b.width/N));
+  const r=Math.floor((e.clientY-b.top)/(b.height/N));
+  if (r<0||c<0||r>=N||c>=N) return null;
+  return {r,c};
+}
+board.addEventListener('pointermove', e=>{
+  if (e.pointerType==='touch') return;
+  const p=cellFromEvent(e);
+  if (!p||brush==null||at(p.r,p.c)!=null){ ghost.style.display='none'; return; }
+  const pct=100/N, ok=canPlace(brush,p.r,p.c);
+  ghost.style.display='block'; ghost.className='ghost'+(ok?'':' bad');
+  ghost.style.left=(p.c*pct)+'%'; ghost.style.top=(p.r*pct)+'%';
+  ghost.style.width=(Math.min(brush,N-p.c)*pct)+'%'; ghost.style.height=(Math.min(brush,N-p.r)*pct)+'%';
+});
+board.addEventListener('pointerleave', ()=>{ ghost.style.display='none'; });
+board.addEventListener('pointerdown', e=>{
+  const p=cellFromEvent(e); if (!p) return;
+  e.preventDefault();
+  const occ=at(p.r,p.c);
+  if (occ!=null) eraseSquare(occ);
+  else if (brush!=null && canPlace(brush,p.r,p.c)) writeSquare(brush,p.r,p.c);
+  ghost.style.display='none';
+});
+board.addEventListener('contextmenu', e=>{
+  const p=cellFromEvent(e); if (!p) return;
+  e.preventDefault();
+  const occ=at(p.r,p.c); if (occ!=null) eraseSquare(occ);
+});
+
+document.getElementById('undoMine').onclick = ()=>{
+  const mine=Object.entries(S.squares||{}).filter(([,s])=>s.by===me.id);
+  if (!mine.length) return;
+  mine.sort((a,b)=>(b[1].t||0)-(a[1].t||0));
+  eraseSquare(mine[0][0]);
+};
+document.getElementById('clear').onclick = ()=>{
+  if (!Object.keys(S.squares||{}).length) return;
+  if (confirm('Clear the shared board for everyone in the room?')) clearBoard();
+};
+
+function setSize(delta){
+  if (S.locked){ nudgeLock(); return; }
+  const n=Math.max(MIN_N,Math.min(MAX_N,N+delta));
+  if (n===N) return;
+  if (Object.keys(S.squares||{}).length && !confirm('Changing the playground clears it for everyone. Continue?')) return;
+  const next={...(S.inPlay||{})};
+  Object.keys(next).forEach(k=>{ if (+k>n) delete next[k]; });
+  if (!Object.keys(next).length){ next[1]=true; next[2]=true; }
+  writeConfig({n, inPlay:next, squares:{}}).then(()=>{ if (roomRef&&connLive) set(ref(db,`${ROOM}/squares`), null); });
+}
+document.getElementById('minus').onclick=()=>setSize(-1);
+document.getElementById('plus').onclick =()=>setSize(1);
+function nudgeLock(){ lockChip.animate([{transform:'scale(1)'},{transform:'scale(1.18)'},{transform:'scale(1)'}],{duration:260}); }
+
+document.addEventListener('keydown', e=>{
+  if (e.target.matches('input,textarea')) return;
+  if (e.key>='1'&&e.key<='9'){ const k=+e.key; if (inPlaySet().has(k)){ brush=k; renderChips(); } }
+  else if (e.key==='u'||e.key==='U') document.getElementById('undoMine').click();
+  else if (e.key==='Escape'){ tracing=null; drawTrace(); }
+});
+
+/* ============================================================
+   CHALLENGES + SOLUTIONS  (writes fill the shared board)
+   ============================================================ */
+const CHALLENGES=[
+  {label:'8×8 · grades 1, 2, 3',      n:8, sizes:[1,2,3],   goal:'spread 0 possible',
+   sol:['22333333','22333333','22333333','22223331','22223331','22113331','22111111','22111111']},
+  {label:'9×9 · grades 1, 2, 3',      n:9, sizes:[1,2,3],   goal:'spread 0 possible',
+   sol:['333222211','333222211','333221111','333221111','333222211','333222211','333333221','333333221','333333111']},
+  {label:'10×10 · grades 1, 2, 4',    n:10,sizes:[1,2,4],   goal:'spread 0 possible',
+   sol:['1111112222','1111112222','4444111122','4444112222','4444112222','4444111122','4444444422','4444444422','4444444422','4444444422']},
+  {label:'10×10 · grades 1, 2, 3, 4', n:10,sizes:[1,2,3,4], goal:'best known: 2',
+   sol:['2233333311','2233333311','2233333311','2233311111','2233311111','2233311111','2244444444','2244444444','2244444444','2244444444']},
+  {label:'10×10 · grades 1–5',        n:10,sizes:[1,2,3,4,5],goal:'best known: 6',
+   sol:['1111111333','1155555333','2255555333','2255555333','2255555333','2255555333','2244444444','2244444444','2244444444','2244444444']},
+  {label:'10×10 · grades 1, 2, 3, 6', n:10,sizes:[1,2,3,6], goal:"best known: 8",
+   sol:['1111111111','3333333331','3333333331','3333333331','2222666666','2222666666','2222666666','2222666666','2222666666','2222666666']}
+];
+
+async function loadChallenge(i){
+  const ch=CHALLENGES[i];
+  if (Object.keys(S.squares||{}).length && !confirm('Load this challenge and clear the shared board for everyone?')) return;
+  const inPlay={}; ch.sizes.forEach(k=>inPlay[k]=true);
+  brush=ch.sizes[0];
+  await writeConfig({n:ch.n, inPlay, squares:{}, locked:S.locked});
+  if (roomRef&&connLive) await set(ref(db,`${ROOM}/squares`), null);
+}
+async function applySolution(i){
+  const ch=CHALLENGES[i];
+  if (!confirm('Fill the shared board with this solution for everyone?')) return;
+  const inPlay={}; ch.sizes.forEach(k=>inPlay[k]=true);
+  const sqs={};
+  for (let r=0;r<ch.n;r++) for (let c=0;c<ch.n;c++){
+    const size=+ch.sol[r][c];
+    // only the top-left cell of each block writes a square
+    if (r%1===0){}
+  }
+  // reconstruct blocks: a cell is a top-left corner if the cells above/left are a different id-block
+  const g=Array.from({length:ch.n},()=>Array(ch.n).fill(0));
+  for (let r=0;r<ch.n;r++) for (let c=0;c<ch.n;c++) g[r][c]=+ch.sol[r][c];
+  const used=Array.from({length:ch.n},()=>Array(ch.n).fill(false));
+  for (let r=0;r<ch.n;r++) for (let c=0;c<ch.n;c++){
+    if (used[r][c]) continue;
+    const s=g[r][c];
+    if (r+s>ch.n||c+s>ch.n){ used[r][c]=true; continue; }
+    let ok=true;
+    for (let i=r;i<r+s&&ok;i++) for (let j=c;j<c+s&&ok;j++) if (g[i][j]!==s||used[i][j]) ok=false;
+    if (!ok){ used[r][c]=true; continue; }
+    for (let i=r;i<r+s;i++) for (let j=c;j<c+s;j++) used[i][j]=true;
+    sqs[keyFor(r,c,s)]={s,r,c,by:'teacher',byNum:'T',byColor:'#111', t:Date.now()};
+  }
+  if (roomRef&&connLive){
+    await set(roomRef, {n:ch.n, inPlay, locked:S.locked, squares:sqs});
+  } else { S={n:ch.n,inPlay,locked:S.locked,squares:sqs}; applyLocal(); }
+}
+
+function renderChallenges(){
+  const host=document.getElementById('challenges'); host.innerHTML='';
+  CHALLENGES.forEach((ch,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='challenge';
+    b.innerHTML=`<span>${ch.label}</span><span class="goal">${ch.goal}</span>`;
+    b.onclick=()=>loadChallenge(i);
+    host.appendChild(b);
+  });
+  const sp=document.getElementById('spoilbody'); sp.innerHTML='';
+  CHALLENGES.forEach((ch,i)=>{
+    const b=document.createElement('button');
+    b.type='button'; b.className='btn';
+    b.textContent=ch.label.split(' · ')[0]+' '+ch.sizes.join('-');
+    b.onclick=()=>applySolution(i);
+    sp.appendChild(b);
+  });
+}
+function markChallenge(){
+  const sig=[...inPlaySet()].sort((a,b)=>a-b).join(',');
+  [...document.getElementById('challenges').children].forEach((el,i)=>{
+    const ch=CHALLENGES[i];
+    el.setAttribute('aria-current', (ch.n===N && ch.sizes.join(',')===sig)?'true':'false');
+  });
+}
+
+/* ============================================================
+   small helpers
+   ============================================================ */
+function setConn(cls,label){
+  const c=document.getElementById('conn');
+  c.className='conn '+cls;
+  document.getElementById('connLabel').textContent=label;
+}
+function showBanner(html){
+  const b=document.getElementById('banner');
+  b.className='banner show'; b.innerHTML=html;
+}
+
+/* ============================================================
+   go
+   ============================================================ */
+renderChallenges();
+applyLocal();
+if (!roomRef){ setConn('off','local only'); }
+</script>
+</body>
+</html>
