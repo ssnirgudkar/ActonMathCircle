@@ -525,9 +525,9 @@ function showSizePicker() {
         document.querySelectorAll('.size-opt').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedSize = s;
-        placeBtn.disabled = false;
         // Live validation feedback
         const v = validate(state.squares, gx, gy, s, label, state.onesLeft);
+        placeBtn.disabled = !v.ok;
         statusMsg.textContent = v.ok ? `${s}×${s} square — looks good!` : v.msg;
         statusMsg.className   = v.ok ? 'status-msg ok' : 'status-msg err';
         statusMsg.dataset.custom = '1';
