@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acton Math Circle — Glue</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink:      #1a1a2e;
+    --paper:    #faf8f3;
+    --accent:   #2e6b9e;
+    --rule:     #d6d0c4;
+    --pale:     #f0ece3;
+    --game-col: #c2692a;
+    --game-bg:  #fff3e0;
+    --game-bdr: #ffcc80;
+    --cell:     40px;
+  }
+
+  body { background:var(--paper); color:var(--ink); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.7; padding:0 0 80px; }
+
+  header { background:var(--ink); color:#fff; padding:48px 40px 40px; position:relative; overflow:hidden; }
+  header::after { content:'□ + □ = □'; position:absolute; right:40px; top:32px; font-size:22px; color:rgba(255,255,255,0.06); letter-spacing:10px; }
+  .eyebrow { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--game-bdr); margin-bottom:12px; font-weight:500; }
+  header h1 { font-family:'Fraunces',serif; font-size:clamp(26px,5vw,44px); font-weight:600; line-height:1.1; margin-bottom:10px; }
+  header h1 em { font-style:italic; font-weight:300; color:rgba(255,255,255,0.5); }
+  header p.sub { font-size:13.5px; color:rgba(255,255,255,0.5); max-width:500px; line-height:1.6; }
+
+  .breadcrumb { padding:12px 40px; background:var(--pale); border-bottom:1px solid var(--rule); font-size:12px; color:#888; }
+  .breadcrumb a { color:var(--accent); text-decoration:none; }
+
+  main { max-width:940px; margin:0 auto; padding:0 28px; }
+
+  /* ── WIDGET ── */
+  .widget { background:#fff; border:1px solid var(--rule); border-radius:8px; overflow:hidden; margin:32px 0; }
+  .widget-hdr { background:var(--ink); color:#fff; padding:13px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .widget-title { font-family:'Fraunces',serif; font-size:15px; font-weight:600; }
+  .widget-sub { font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:1px; text-transform:uppercase; }
+
+  /* config */
+  .config-bar { background:var(--pale); border-bottom:1px solid var(--rule); padding:12px 22px; display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  .cfg-grp { display:flex; align-items:center; gap:8px; font-size:13px; color:#555; }
+  .cfg-grp label { font-weight:500; white-space:nowrap; }
+  .cfg-btn { width:26px; height:26px; border-radius:50%; border:1.5px solid var(--rule); background:#fff; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; color:var(--ink); transition:all 0.15s; padding:0; line-height:1; }
+  .cfg-btn:hover { border-color:var(--game-col); color:var(--game-col); }
+  .cfg-val { font-family:'Fraunces',serif; font-size:17px; font-weight:600; min-width:18px; text-align:center; }
+  .reset-btn { margin-left:auto; padding:5px 14px; background:var(--ink); color:#fff; border:none; border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity 0.15s; }
+  .reset-btn:hover { opacity:0.8; }
+  .undo-btn { padding:5px 14px; background:#fff; color:var(--ink); border:1.5px solid var(--rule); border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .undo-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+  .undo-btn:disabled { opacity:0.35; cursor:default; }
+
+  /* status */
+  .status-bar { padding:11px 22px; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:16px; min-height:48px; flex-wrap:wrap; }
+  .next-label-badge { background:var(--game-col); color:#fff; font-family:'Fraunces',serif; font-size:20px; font-weight:600; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .next-label-badge.placing { background:var(--accent); }
+  .next-info { font-size:13px; color:#555; }
+  .next-info strong { color:var(--ink); }
+  .score-display { margin-left:auto; font-size:13px; color:#aaa; }
+  .score-display strong { font-family:'Fraunces',serif; font-size:20px; color:var(--ink); }
+  .status-msg { font-size:13px; color:#888; font-style:italic; margin-left:auto; }
+  .status-msg.ok { color:#3a7d44; font-style:normal; font-weight:500; }
+  .status-msg.err { color:#c62828; font-style:normal; font-weight:500; }
+
+  /* size picker */
+  .size-bar { padding:12px 22px; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fdfcf9; }
+  .size-label { font-size:12px; font-weight:500; color:#777; white-space:nowrap; }
+  .size-options { display:flex; gap:7px; flex-wrap:wrap; }
+  .size-opt {
+    width:36px; height:36px; border-radius:5px; border:1.5px solid var(--rule);
+    background:#fff; cursor:pointer; font-size:14px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; color:#555;
+    font-family:'Fraunces',serif; transition:all 0.15s;
+  }
+  .size-opt:hover { border-color:var(--game-col); color:var(--game-col); }
+  .size-opt.selected { background:var(--game-col); border-color:var(--game-col); color:#fff; }
+  .size-opt.disabled { opacity:0.3; cursor:default; pointer-events:none; }
+  .place-btn { padding:7px 18px; background:var(--game-col); color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity 0.15s; }
+  .place-btn:hover:not(:disabled) { opacity:0.85; }
+  .place-btn:disabled { opacity:0.35; cursor:default; }
+  .cancel-btn { padding:7px 14px; background:#fff; color:#888; border:1.5px solid var(--rule); border-radius:4px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .cancel-btn:hover { color:var(--ink); border-color:#aaa; }
+
+  /* grid */
+  .grid-wrap { padding:22px; overflow:auto; background:#fdfcf9; }
+  #glueCanvas { display:block; cursor:crosshair; border:1px solid var(--rule); border-radius:3px; background:#fff; max-width:100%; height:auto; }
+
+  /* rules */
+  .rules-card { background:var(--game-bg); border:1px solid var(--game-bdr); border-radius:6px; padding:18px 22px; margin:0 0 20px; }
+  .rules-card h3 { font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:10px; color:var(--game-col); }
+  .rules-card ol { padding-left:20px; font-size:13.5px; color:#444; line-height:1.8; }
+  .rules-card li { margin-bottom:4px; }
+
+  /* log */
+  .move-log { padding:0 22px 18px; border-top:1px solid var(--rule); }
+  .log-lbl { font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:#bbb; font-weight:500; padding:13px 0 7px; }
+  .log-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .log-chip { padding:2px 9px; border-radius:11px; font-size:12px; background:var(--pale); border:1px solid var(--rule); color:#666; font-weight:500; }
+
+  /* discovery */
+  .section-hdr { display:flex; align-items:center; gap:14px; margin:44px 0 20px; padding-bottom:10px; border-bottom:2px solid var(--ink); }
+  .section-hdr h2 { font-family:'Fraunces',serif; font-size:20px; font-weight:600; }
+  .problem-card { background:#fff; border:1px solid var(--rule); border-left:4px solid var(--game-col); border-radius:6px; padding:20px 24px; margin-bottom:16px; }
+  .problem-card h3 { font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:6px; }
+  .problem-card p { font-size:14px; color:#444; line-height:1.7; }
+
+  footer { max-width:940px; margin:52px auto 0; padding:20px 28px 0; border-top:1px solid var(--rule); font-size:12px; color:#aaa; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  @media(max-width:600px) {
+    header, .breadcrumb { padding-left:20px; padding-right:20px; }
+    main { padding:0 14px; }
+    .config-bar, .status-bar, .size-bar { padding-left:14px; padding-right:14px; }
+    .grid-wrap { padding:14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Acton Math Circle · Grades 5–7</div>
+  <h1>Glue — <em>How high can you get?</em></h1>
+  <p class="sub">Place squares on a grid. Each square's label must equal the sum of all the squares it touches along an edge. Start with two 1s — then try to go as high as you can.</p>
+</header>
+
+<div class="breadcrumb"><a href="index.html">← All Explorations</a> · Problem · Arithmetic &amp; Geometry</div>
+
+<main>
+
+  <div class="rules-card">
+    <h3>The Rules</h3>
+    <ol>
+      <li>Start by placing two 1×1 squares labeled <strong>1</strong> anywhere on the grid.</li>
+      <li>Next, glue a square labeled <strong>2</strong>, then <strong>3</strong>, then <strong>4</strong>, and so on — always the next integer.</li>
+      <li>A square's <strong>label must equal the sum</strong> of labels of all squares sharing an edge with it.</li>
+      <li>A square's <strong>edge length may not exceed its label</strong>. (It may be smaller.)</li>
+      <li>Squares must align to the grid and may not overlap.</li>
+    </ol>
+  </div>
+
+  <div class="widget">
+
+    <div class="widget-hdr">
+      <div>
+        <div class="widget-title">Play Glue</div>
+        <div class="widget-sub">Click a cell → pick a size → place</div>
+      </div>
+    </div>
+
+    <!-- config -->
+    <div class="config-bar">
+      <div class="cfg-grp">
+        <label>Start n:</label>
+        <button class="cfg-btn" id="nDown">−</button>
+        <span class="cfg-val" id="nDisplay">2</span>
+        <button class="cfg-btn" id="nUp">+</button>
+        <span style="font-size:12px;color:#aaa;">(place n ones first)</span>
+      </div>
+      <button class="undo-btn" id="undoBtn" disabled>↩ Undo</button>
+      <button class="reset-btn" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <!-- status -->
+    <div class="status-bar">
+      <div class="next-label-badge" id="nextBadge">1</div>
+      <div class="next-info" id="nextInfo">Place your first <strong>1×? square</strong></div>
+      <div class="score-display">High: <strong id="scoreDisplay">—</strong></div>
+      <span class="status-msg" id="statusMsg">Click any cell to begin</span>
+    </div>
+
+    <!-- size picker (shown after cell click) -->
+    <div class="size-bar" id="sizeBar" style="display:none;">
+      <span class="size-label">Square size:</span>
+      <div class="size-options" id="sizeOptions"></div>
+      <button class="place-btn" id="placeBtn" disabled>Place ✓</button>
+      <button class="cancel-btn" id="cancelBtn">Cancel</button>
+    </div>
+
+    <!-- canvas -->
+    <div class="grid-wrap">
+      <canvas id="glueCanvas"></canvas>
+    </div>
+
+    <!-- log -->
+    <div class="move-log">
+      <div class="log-lbl">Placed squares</div>
+      <div class="log-chips" id="logChips"><span style="font-size:13px;color:#ccc;font-style:italic;">None yet</span></div>
+    </div>
+
+  </div>
+
+  <div class="section-hdr"><h2>Things to Discover</h2></div>
+
+  <div class="problem-card">
+    <h3>① How high can you get?</h3>
+    <p>Work with your partner to place squares as high as you can. When you get stuck, hit Reset and try a different arrangement from the start. What's your group's record?</p>
+  </div>
+
+  <div class="problem-card">
+    <h3>② Does size matter?</h3>
+    <p>You can place a square with label 5 as a 1×1, 2×2, 3×3, 4×4, or 5×5. Try each. When does a bigger square help you go higher? When does it hurt?</p>
+  </div>
+
+  <div class="problem-card">
+    <h3>③ Change the starting n</h3>
+    <p>Try starting with n=3 (three 1s, then jump to 3, 4, 5...). Does changing n make it easier or harder? Which n gives the best results?</p>
+  </div>
+
+  <div class="problem-card">
+    <h3>④ The sum rule — why?</h3>
+    <p>Pick any square you've placed. Check that its label really does equal the sum of all its edge-touching neighbors. Now ask: could you ever have a square whose label is larger than the sum of all squares placed so far? Why or why not?</p>
+  </div>
+
+</main>
+
+<footer>
+  <span>Acton Math Circle</span>
+  <span>Geometry &amp; Arithmetic</span>
+</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+  authDomain:        "acton-math-circle.firebaseapp.com",
+  databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+  projectId:         "acton-math-circle",
+  storageBucket:     "acton-math-circle.firebasestorage.app",
+  messagingSenderId: "834678210381",
+  appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+});
+const db      = getDatabase(app);
+const gameRef = ref(db, 'glue/game');
+
+// ── CONSTANTS ────────────────────────────────────────────────
+const CELL    = 40;    // pixels per grid unit
+const GCOLS   = 26;    // grid columns
+const GROWS   = 20;    // grid rows
+const ORIGIN  = { x: Math.floor(GCOLS/2), y: Math.floor(GROWS/2) }; // center offset
+
+// Colors for squares by label mod palette
+const PALETTE = [
+  '#9c6ade','#6a8fd8','#5bab7c','#d4845a','#d45a8a',
+  '#7ab3d4','#b4a04a','#8a6ad4','#4ab48a','#d4604a',
+  '#a05ab4','#5ab4b4','#b45a5a','#5a7ab4','#7ab45a',
+  '#c2692a','#2e6b9e','#3a7d44','#8b4513','#4682b4',
+];
+
+// ── DOM ──────────────────────────────────────────────────────
+const canvas      = document.getElementById('glueCanvas');
+const ctx         = canvas.getContext('2d');
+const nextBadge   = document.getElementById('nextBadge');
+const nextInfo    = document.getElementById('nextInfo');
+const scoreDisp   = document.getElementById('scoreDisplay');
+const statusMsg   = document.getElementById('statusMsg');
+const logChips    = document.getElementById('logChips');
+const nDisplay    = document.getElementById('nDisplay');
+const sizeBar     = document.getElementById('sizeBar');
+const sizeOptions = document.getElementById('sizeOptions');
+const placeBtn    = document.getElementById('placeBtn');
+const cancelBtn   = document.getElementById('cancelBtn');
+const undoBtn     = document.getElementById('undoBtn');
+
+// Canvas size
+canvas.width  = GCOLS * CELL;
+canvas.height = GROWS * CELL;
+
+// ── LOCAL UI STATE ───────────────────────────────────────────
+let selectedCell = null;   // {gx, gy} grid coords of clicked cell
+let selectedSize = null;   // chosen square size
+let state        = null;
+
+// ── STATE ────────────────────────────────────────────────────
+function defaultState(n) {
+  return {
+    n,
+    squares:  [],   // [{gx,gy,size,label,color}]
+    history:  [],   // stack of previous squares arrays
+    onesLeft: n,    // how many 1s still to place
+    nextLabel: 1,   // next label to place (1 during ones phase, then n after)
+    highScore: 0
+  };
+}
+
+function sanitize(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return Object.keys(val).sort((a,b)=>a-b).map(k=>val[k]);
+}
+
+async function push(s) { await set(gameRef, s); }
+
+onValue(gameRef, snap => {
+  const d = snap.val();
+  if (!d) { push(defaultState(2)); return; }
+  d.squares = sanitize(d.squares).map(sq => ({
+    ...sq,
+    gx:    Number(sq.gx),
+    gy:    Number(sq.gy),
+    size:  Number(sq.size),
+    label: Number(sq.label)
+  }));
+  d.history = sanitize(d.history).map(h => sanitize(h).map(sq => ({
+    ...sq,
+    gx:    Number(sq.gx),
+    gy:    Number(sq.gy),
+    size:  Number(sq.size),
+    label: Number(sq.label)
+  })));
+  state = d;
+  nDisplay.textContent = state.n;
+  selectedCell = null;
+  selectedSize = null;
+  sizeBar.style.display = 'none';
+  draw();
+  updateStatus();
+  updateLog();
+});
+
+// ── GEOMETRY HELPERS ─────────────────────────────────────────
+function cellKey(gx, gy) { return Number(gx)+','+Number(gy); }
+
+function squareCells(sq) {
+  const cells = new Set();
+  for (let dx=0; dx<sq.size; dx++)
+    for (let dy=0; dy<sq.size; dy++)
+      cells.add(cellKey(sq.gx+dx, sq.gy+dy));
+  return cells;
+}
+
+function overlaps(squares, gx, gy, size) {
+  const fp = new Set();
+  for (let dx=0;dx<size;dx++) for(let dy=0;dy<size;dy++) fp.add(cellKey(gx+dx,gy+dy));
+  for (const sq of squares) {
+    for (const c of squareCells(sq)) if (fp.has(c)) return true;
+  }
+  return false;
+}
+
+function outOfBounds(gx, gy, size) {
+  return gx < 0 || gy < 0 || gx+size > GCOLS || gy+size > GROWS;
+}
+
+function edgeNeighborLabels(squares, gx, gy, size) {
+  // All cells sharing an edge with the proposed square's footprint
+  const fp = new Set();
+  for (let dx=0;dx<size;dx++) for(let dy=0;dy<size;dy++) fp.add(cellKey(gx+dx,gy+dy));
+
+  const edgeCells = new Set();
+  for (let dx=-1; dx<=size; dx++) {
+    edgeCells.add(cellKey(gx+dx, gy-1));
+    edgeCells.add(cellKey(gx+dx, gy+size));
+  }
+  for (let dy=0; dy<size; dy++) {
+    edgeCells.add(cellKey(gx-1,   gy+dy));
+    edgeCells.add(cellKey(gx+size,gy+dy));
+  }
+
+  const labels = [];
+  for (const sq of squares) {
+    const sc = squareCells(sq);
+    for (const ec of edgeCells) {
+      if (sc.has(ec)) { labels.push(sq.label); break; }
+    }
+  }
+  return labels;
+}
+
+function validate(squares, gx, gy, size, label, onesLeft) {
+  if (outOfBounds(gx, gy, size))     return { ok:false, msg:`Square goes out of bounds.` };
+  if (overlaps(squares, gx, gy, size)) return { ok:false, msg:`Overlaps an existing square.` };
+  if (size > label)                   return { ok:false, msg:`Size ${size} exceeds label ${label}. Edge length must be ≤ label.` };
+
+  if (label === 1) {
+    // First-phase: 1s may touch other 1s but sum rule applied
+    // Actually per rules any 1 touching a neighbor needs sum=1
+    // Simplest: 1s can be placed anywhere as long as they don't share edges with non-1 squares
+    // (In standard Glue, the two 1s are placed first with no adjacency requirement)
+    // Allow 1s anywhere for now — no neighbor sum check during ones phase
+    return { ok:true, msg:'' };
+  }
+
+  // For label >= n: sum rule applies
+  const neighborLabels = edgeNeighborLabels(squares, gx, gy, size);
+  if (neighborLabels.length === 0) return { ok:false, msg:`Square must touch at least one existing square.` };
+  const sum = neighborLabels.reduce((a,b)=>a+b,0);
+  if (sum !== label) return { ok:false, msg:`Neighbors sum to ${sum}, but label is ${label}. Need sum = ${label}.` };
+
+  return { ok:true, msg:'' };
+}
+
+// ── DRAW ────────────────────────────────────────────────────
+function draw() {
+  if (!state) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth   = 0.5;
+  for (let x=0; x<=GCOLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,canvas.height); ctx.stroke(); }
+  for (let y=0; y<=GROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(canvas.width,y*CELL); ctx.stroke(); }
+
+  // Hover highlight
+  if (hoverCell && !selectedCell) {
+    const {gx,gy} = hoverCell;
+    ctx.fillStyle = 'rgba(194,105,42,0.08)';
+    ctx.fillRect(gx*CELL, gy*CELL, CELL, CELL);
+  }
+
+  // Selected cell highlight
+  if (selectedCell) {
+    const {gx,gy} = selectedCell;
+    ctx.fillStyle = 'rgba(46,107,158,0.08)';
+    ctx.fillRect(gx*CELL, gy*CELL, CELL, CELL);
+    ctx.strokeStyle = 'rgba(46,107,158,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(gx*CELL+1, gy*CELL+1, CELL-2, CELL-2);
+  }
+
+  // Preview: if cell and size selected, show ghost
+  if (selectedCell && selectedSize) {
+    const {gx,gy} = selectedCell;
+    const size = selectedSize;
+    const label = state.nextLabel;
+    const v = validate(state.squares, gx, gy, size, label, state.onesLeft);
+    const px = gx*CELL, py = gy*CELL, ps = size*CELL;
+    ctx.fillStyle = v.ok ? 'rgba(58,125,68,0.15)' : 'rgba(198,40,40,0.1)';
+    ctx.fillRect(px+1, py+1, ps-2, ps-2);
+    ctx.strokeStyle = v.ok ? '#3a7d44' : '#c62828';
+    ctx.lineWidth   = 2;
+    ctx.setLineDash([4,3]);
+    ctx.strokeRect(px+1, py+1, ps-2, ps-2);
+    ctx.setLineDash([]);
+    // Label preview
+    const fs = Math.max(9, Math.min(20, ps*0.28));
+    ctx.fillStyle = v.ok ? '#3a7d44' : '#c62828';
+    ctx.font = `600 ${fs}px 'DM Sans',sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, px+ps/2, py+ps/2);
+  }
+
+  // Draw placed squares
+  state.squares.forEach(sq => {
+    const px = sq.gx*CELL, py = sq.gy*CELL, ps = sq.size*CELL;
+    ctx.fillStyle = (sq.color || '#9c6ade') + 'cc';
+    ctx.fillRect(px+1, py+1, ps-2, ps-2);
+    ctx.strokeStyle = sq.color || '#9c6ade';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px+1, py+1, ps-2, ps-2);
+    // Label
+    const fs = Math.max(9, Math.min(22, ps*0.32));
+    ctx.fillStyle = '#fff';
+    ctx.font = `700 ${fs}px 'DM Sans',sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(sq.label, px+ps/2, py+ps/2);
+    // Size annotation (small, bottom right) if square is bigger than 1x1
+    if (sq.size > 1) {
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = `400 9px 'DM Sans',sans-serif`;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${sq.size}×${sq.size}`, px+ps-3, py+ps-2);
+    }
+  });
+}
+
+// ── UI STATUS ─────────────────────────────────────────────────
+function updateStatus() {
+  if (!state) return;
+  const { onesLeft, nextLabel, n, squares, highScore } = state;
+  const score = squares.length > 0 ? Math.max(...squares.map(s=>s.label)) : 0;
+
+  nextBadge.textContent = nextLabel;
+  nextBadge.className   = onesLeft > 0 ? 'next-label-badge placing' : 'next-label-badge';
+  scoreDisp.textContent = score > 0 ? score : '—';
+
+  if (onesLeft > 0) {
+    nextInfo.innerHTML = `Place <strong>${onesLeft} more 1×? square${onesLeft>1?'s':''}</strong> to begin`;
+  } else {
+    nextInfo.innerHTML = `Next: place a square labeled <strong>${nextLabel}</strong>`;
+  }
+
+  undoBtn.disabled = !state.history || state.history.length === 0;
+
+  if (!statusMsg.dataset.custom) {
+    statusMsg.textContent = selectedCell ? 'Pick a size above, then click Place' : 'Click a grid cell to select it';
+    statusMsg.className   = 'status-msg';
+  }
+}
+
+function updateLog() {
+  if (!state || state.squares.length === 0) {
+    logChips.innerHTML = '<span style="font-size:13px;color:#ccc;font-style:italic;">None yet</span>';
+    return;
+  }
+  logChips.innerHTML = state.squares.map(sq =>
+    `<span class="log-chip" style="border-color:${sq.color};color:${sq.color}">${sq.label} (${sq.size}×${sq.size})</span>`
+  ).join('');
+}
+
+// ── SIZE PICKER ──────────────────────────────────────────────
+function showSizePicker() {
+  if (!state || !selectedCell) return;
+  const label   = state.nextLabel;
+  const maxSize = label; // edge ≤ label
+  sizeBar.style.display = 'flex';
+  sizeOptions.innerHTML = '';
+  selectedSize = null;
+  placeBtn.disabled = true;
+
+  for (let s=1; s<=Math.min(maxSize, 8); s++) {
+    // Check if this size would go out of bounds
+    const {gx,gy} = selectedCell;
+    const oob = outOfBounds(gx, gy, s);
+    const btn = document.createElement('button');
+    btn.className = 'size-opt' + (oob ? ' disabled' : '');
+    btn.textContent = s;
+    btn.title = `${s}×${s} square`;
+    if (!oob) {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.size-opt').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedSize = s;
+        placeBtn.disabled = false;
+        // Live validation feedback
+        const v = validate(state.squares, gx, gy, s, label, state.onesLeft);
+        statusMsg.textContent = v.ok ? `${s}×${s} square — looks good!` : v.msg;
+        statusMsg.className   = v.ok ? 'status-msg ok' : 'status-msg err';
+        statusMsg.dataset.custom = '1';
+        draw();
+      });
+    }
+    sizeOptions.appendChild(btn);
+  }
+}
+
+// ── HOVER HIGHLIGHT ──────────────────────────────────────────
+let hoverCell = null;
+canvas.addEventListener('mousemove', e => {
+  if (!state) return;
+  const rect   = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx     = (e.clientX - rect.left)  * scaleX;
+  const my     = (e.clientY - rect.top)   * scaleY;
+  const gx     = Math.floor(mx / CELL);
+  const gy     = Math.floor(my / CELL);
+  if (gx !== hoverCell?.gx || gy !== hoverCell?.gy) {
+    hoverCell = {gx, gy};
+    draw();
+  }
+});
+canvas.addEventListener('mouseleave', () => { hoverCell = null; draw(); });
+
+// ── CANVAS CLICK ─────────────────────────────────────────────
+canvas.addEventListener('click', e => {
+  if (!state) return;
+  const rect   = canvas.getBoundingClientRect();
+  // Scale from CSS pixels to canvas pixels
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const mx     = (e.clientX - rect.left)  * scaleX;
+  const my     = (e.clientY - rect.top)   * scaleY;
+  const gx     = Math.floor(mx / CELL);
+  const gy     = Math.floor(my / CELL);
+
+  if (gx < 0 || gy < 0 || gx >= GCOLS || gy >= GROWS) return;
+
+  selectedCell = {gx, gy};
+  selectedSize = null;
+  delete statusMsg.dataset.custom;
+  draw();
+  showSizePicker();
+  updateStatus();
+});
+
+// ── PLACE ────────────────────────────────────────────────────
+placeBtn.addEventListener('click', async () => {
+  if (!state || !selectedCell || !selectedSize) return;
+  const {gx, gy} = selectedCell;
+  const size      = selectedSize;
+  const label     = state.nextLabel;
+
+  const v = validate(state.squares, gx, gy, size, label, state.onesLeft);
+  if (!v.ok) {
+    statusMsg.textContent = v.msg;
+    statusMsg.className   = 'status-msg err';
+    statusMsg.dataset.custom = '1';
+    return;
+  }
+
+  const color     = PALETTE[(state.squares.length) % PALETTE.length];
+  const newSq     = {gx, gy, size, label, color};
+  const newSquares = [...state.squares, newSq];
+  const newHistory = [...(state.history||[]), state.squares.map(s=>({...s}))];
+
+  let newOnesLeft  = state.onesLeft;
+  let newNextLabel = state.nextLabel;
+
+  if (label === 1) {
+    newOnesLeft--;
+    if (newOnesLeft === 0) newNextLabel = state.n; // jump to n after ones
+  } else {
+    newNextLabel = label + 1;
+  }
+
+  const newScore = Math.max(state.highScore||0, label);
+
+  await push({
+    ...state,
+    squares:   newSquares,
+    history:   newHistory,
+    onesLeft:  newOnesLeft,
+    nextLabel: newNextLabel,
+    highScore: newScore
+  });
+
+  selectedCell = null;
+  selectedSize = null;
+  sizeBar.style.display = 'none';
+  delete statusMsg.dataset.custom;
+});
+
+cancelBtn.addEventListener('click', () => {
+  selectedCell = null;
+  selectedSize = null;
+  sizeBar.style.display = 'none';
+  delete statusMsg.dataset.custom;
+  draw();
+  updateStatus();
+});
+
+// ── UNDO ─────────────────────────────────────────────────────
+document.getElementById('undoBtn').addEventListener('click', async () => {
+  if (!state || !state.history || state.history.length === 0) return;
+  const history    = [...state.history];
+  const prevSquares = history.pop();
+
+  // Recompute onesLeft and nextLabel from prevSquares
+  const onesPlaced = prevSquares.filter(s=>s.label===1).length;
+  let onesLeft  = state.n - onesPlaced;
+  let nextLabel;
+  if (onesLeft > 0) {
+    nextLabel = 1;
+  } else {
+    const maxLabel = prevSquares.length > 0 ? Math.max(...prevSquares.map(s=>s.label)) : state.n - 1;
+    nextLabel = maxLabel + 1;
+    if (nextLabel <= state.n) nextLabel = state.n;
+  }
+
+  await push({ ...state, squares: prevSquares, history, onesLeft, nextLabel });
+});
+
+// ── ARROW KEY NUDGE ──────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!selectedCell) return;
+  const map = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+  if (!map[e.key]) return;
+  e.preventDefault();
+  const [dx,dy] = map[e.key];
+  const gx = selectedCell.gx + dx;
+  const gy = selectedCell.gy + dy;
+  if (gx < 0 || gy < 0 || gx >= GCOLS || gy >= GROWS) return;
+  selectedCell = {gx, gy};
+  draw();
+  showSizePicker();
+});
+
+// ── CONFIG ───────────────────────────────────────────────────
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!state) return;
+  push(defaultState(state.n));
+});
+
+document.getElementById('nDown').addEventListener('click', () => {
+  if (!state || state.n <= 2) return;
+  push(defaultState(state.n - 1));
+});
+
+document.getElementById('nUp').addEventListener('click', () => {
+  if (!state || state.n >= 6) return;
+  push(defaultState(state.n + 1));
+});
+</script>
+</body>
+</html>
