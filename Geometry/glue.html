@@ -350,13 +350,15 @@ function edgeNeighborLabels(squares, gx, gy, size) {
   for (let dx=0;dx<size;dx++) for(let dy=0;dy<size;dy++) fp.add(cellKey(gx+dx,gy+dy));
 
   const edgeCells = new Set();
-  for (let dx=-1; dx<=size; dx++) {
+  // Top and bottom edges — only cells directly above/below footprint (no corners)
+  for (let dx=0; dx<size; dx++) {
     edgeCells.add(cellKey(gx+dx, gy-1));
     edgeCells.add(cellKey(gx+dx, gy+size));
   }
+  // Left and right edges — only cells directly beside footprint (no corners)
   for (let dy=0; dy<size; dy++) {
-    edgeCells.add(cellKey(gx-1,   gy+dy));
-    edgeCells.add(cellKey(gx+size,gy+dy));
+    edgeCells.add(cellKey(gx-1,    gy+dy));
+    edgeCells.add(cellKey(gx+size, gy+dy));
   }
 
   const labels = [];
