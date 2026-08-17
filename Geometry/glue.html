@@ -377,11 +377,11 @@ function validate(squares, gx, gy, size, label, onesLeft) {
   if (size > label)                   return { ok:false, msg:`Size ${size} exceeds label ${label}. Edge length must be ≤ label.` };
 
   if (label === 1) {
-    // First-phase: 1s may touch other 1s but sum rule applied
-    // Actually per rules any 1 touching a neighbor needs sum=1
-    // Simplest: 1s can be placed anywhere as long as they don't share edges with non-1 squares
-    // (In standard Glue, the two 1s are placed first with no adjacency requirement)
-    // Allow 1s anywhere for now — no neighbor sum check during ones phase
+    // First 1 can go anywhere
+    if (squares.length === 0) return { ok:true, msg:'' };
+    // Subsequent 1s must edge-touch at least one existing square
+    const neighborLabels = edgeNeighborLabels(squares, gx, gy, size);
+    if (neighborLabels.length === 0) return { ok:false, msg:`This square must touch an existing square along an edge (not just a corner).` };
     return { ok:true, msg:'' };
   }
 
