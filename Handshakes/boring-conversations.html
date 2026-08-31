@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acton Math Circle — Boring Conversations</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --ink:#1a1a2e; --paper:#faf8f3; --accent:#2e6b9e;
+    --rule:#d6d0c4; --pale:#f0ece3;
+    --game-col:#7b3fa0; --game-bg:#f3eafa; --game-bdr:#ce93d8;
+    --ok:#3a7d44; --err:#c62828;
+  }
+  body { background:var(--paper); color:var(--ink); font-family:'DM Sans',sans-serif; font-size:15px; line-height:1.7; padding:0 0 80px; }
+
+  header { background:var(--ink); color:#fff; padding:44px 40px 36px; position:relative; overflow:hidden; }
+  header::after { content:'zzz zzz'; position:absolute; right:40px; top:28px; font-size:22px; color:rgba(255,255,255,0.06); letter-spacing:14px; }
+  .eyebrow { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--game-bdr); margin-bottom:12px; font-weight:500; }
+  header h1 { font-family:'Fraunces',serif; font-size:clamp(24px,5vw,42px); font-weight:600; line-height:1.1; margin-bottom:10px; }
+  header h1 em { font-style:italic; font-weight:300; color:rgba(255,255,255,0.5); }
+  header p.sub { font-size:13.5px; color:rgba(255,255,255,0.5); max-width:520px; line-height:1.6; }
+
+  .breadcrumb { padding:12px 40px; background:var(--pale); border-bottom:1px solid var(--rule); font-size:12px; color:#888; }
+  .breadcrumb a { color:var(--accent); text-decoration:none; }
+
+  main { max-width:920px; margin:0 auto; padding:0 28px; }
+
+  .rules-card { background:var(--game-bg); border:1px solid var(--game-bdr); border-radius:6px; padding:18px 22px; margin:24px 0 0; }
+  .rules-card h3 { font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--game-col); margin-bottom:8px; }
+  .rules-card p { font-size:13.5px; color:#444; line-height:1.7; }
+  .rules-card p+p { margin-top:8px; }
+
+  .widget { background:#fff; border:1px solid var(--rule); border-radius:8px; overflow:hidden; margin:20px 0; }
+  .widget-hdr { background:var(--ink); color:#fff; padding:13px 22px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .widget-title { font-family:'Fraunces',serif; font-size:15px; font-weight:600; }
+  .widget-sub { font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:1px; text-transform:uppercase; }
+
+  /* COLOR DISTRIBUTION CONFIG */
+  .color-config { background:var(--pale); border-bottom:1px solid var(--rule); padding:16px 22px; display:flex; flex-direction:column; gap:12px; }
+  .color-config-top { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .total-display { font-size:13px; color:#666; }
+  .total-display strong { font-family:'Fraunces',serif; font-size:18px; color:var(--ink); }
+  .mode-btns { display:flex; gap:6px; margin-left:auto; }
+  .mode-btn { padding:5px 14px; border:1.5px solid var(--rule); border-radius:4px; background:#fff; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; color:#555; transition:all 0.15s; }
+  .mode-btn.active { background:var(--game-col); border-color:var(--game-col); color:#fff; }
+  .reset-btn { padding:5px 14px; background:var(--ink); color:#fff; border:none; border-radius:4px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; }
+  .reset-btn:hover { opacity:0.8; }
+
+  .color-rows { display:flex; flex-direction:column; gap:8px; }
+  .color-row { display:flex; align-items:center; gap:10px; }
+  .color-dot { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; }
+  .color-name { font-size:13px; color:#555; width:56px; flex-shrink:0; }
+  .count-ctrl { display:flex; align-items:center; gap:6px; }
+  .cnt-btn { width:24px; height:24px; border-radius:50%; border:1.5px solid var(--rule); background:#fff; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; color:var(--ink); padding:0; transition:all 0.15s; }
+  .cnt-btn:hover:not(:disabled) { border-color:var(--game-col); color:var(--game-col); }
+  .cnt-btn:disabled { opacity:0.25; cursor:default; }
+  .cnt-val { font-family:'Fraunces',serif; font-size:16px; font-weight:600; min-width:20px; text-align:center; color:var(--ink); }
+  .cnt-val.zero { color:#ccc; }
+  .cnt-pips { display:flex; gap:3px; align-items:center; }
+  .pip { width:10px; height:10px; border-radius:50%; }
+
+  /* PALETTE */
+  .palette-bar { padding:11px 22px; border-bottom:1px solid var(--rule); display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#fff; }
+  .palette-label { font-size:12px; font-weight:500; color:#777; }
+  .palette-swatches { display:flex; gap:6px; flex-wrap:wrap; }
+  .swatch { width:36px; height:36px; border-radius:50%; cursor:pointer; border:3px solid transparent; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.12); transition:all 0.12s; }
+  .swatch:hover { transform:scale(1.1); }
+  .swatch.selected { border-color:var(--ink); transform:scale(1.15); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
+  .swatch.exhausted { opacity:0.3; cursor:not-allowed; }
+  .eraser { padding:5px 12px; border:1.5px solid var(--rule); border-radius:4px; background:#fff; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; color:#888; transition:all 0.15s; }
+  .eraser:hover { border-color:var(--err); color:var(--err); }
+  .eraser.selected { background:var(--err); border-color:var(--err); color:#fff; }
+
+  /* STATUS */
+  .status-bar { padding:10px 22px; border-bottom:1px solid var(--rule); display:flex; align-items:center; gap:12px; min-height:44px; flex-wrap:wrap; }
+  .status-msg { font-size:13px; color:#888; font-style:italic; }
+  .status-msg.ok  { color:var(--ok);  font-style:normal; font-weight:500; }
+  .status-msg.err { color:var(--err); font-style:normal; font-weight:500; }
+  .conflict-chips { display:flex; flex-wrap:wrap; gap:5px; margin-left:auto; }
+  .conflict-chip { padding:2px 9px; border-radius:11px; font-size:11px; font-weight:600; background:#fdecea; border:1px solid #ef9a9a; color:var(--err); }
+
+  /* LINEUPS */
+  .lineups-wrap { padding:24px 22px; display:flex; flex-direction:column; gap:28px; }
+  .lineup-section { display:flex; flex-direction:column; gap:12px; }
+  .lineup-hdr { display:flex; align-items:center; gap:10px; }
+  .lineup-lbl { font-family:'Fraunces',serif; font-size:17px; font-weight:600; }
+  .lineup-badge { font-size:11px; font-weight:500; padding:2px 10px; border-radius:12px; background:var(--pale); color:#888; border:1px solid var(--rule); }
+  .lineup-badge.ok  { background:#e8f5e9; color:var(--ok);  border-color:#a5d6a7; }
+  .lineup-badge.err { background:#fdecea; color:var(--err); border-color:#ef9a9a; }
+
+  .meeple-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .meeple { width:46px; height:46px; border-radius:50%; cursor:pointer; border:3px solid transparent; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.13); transition:transform 0.1s; flex-shrink:0; user-select:none; }
+  .meeple:hover { transform:scale(1.08); }
+  .meeple.empty { background:#f0ece3 !important; border-color:var(--rule) !important; color:#bbb !important; box-shadow:none; }
+  .meeple.conflict { box-shadow:0 0 0 3px var(--err), 0 2px 5px rgba(0,0,0,0.13); }
+  .conn { width:10px; height:3px; background:var(--rule); border-radius:2px; flex-shrink:0; }
+  .conn.conflict { background:var(--err); }
+
+  .circle-wrap { display:flex; justify-content:center; padding:8px 0; }
+
+  /* DISCOVERY */
+  .section-hdr { display:flex; align-items:center; gap:14px; margin:36px 0 16px; padding-bottom:10px; border-bottom:2px solid var(--ink); }
+  .section-hdr h2 { font-family:'Fraunces',serif; font-size:20px; font-weight:600; }
+  .problem-card { background:#fff; border:1px solid var(--rule); border-left:4px solid var(--game-col); border-radius:6px; padding:16px 20px; margin-bottom:12px; }
+  .problem-card h3 { font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin-bottom:4px; }
+  .problem-card p { font-size:13.5px; color:#444; line-height:1.65; }
+
+  footer { max-width:920px; margin:48px auto 0; padding:16px 28px 0; border-top:1px solid var(--rule); font-size:12px; color:#aaa; display:flex; justify-content:space-between; }
+
+  @media(max-width:600px) {
+    header,.breadcrumb { padding-left:20px; padding-right:20px; }
+    main { padding:0 14px; }
+    .color-config,.palette-bar,.status-bar,.lineups-wrap { padding-left:14px; padding-right:14px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Acton Math Circle · Grades 5–7</div>
+  <h1>Boring <em>Conversations</em></h1>
+  <p class="sub">Meeples refuse to stand next to the same color twice. Arrange two lineups so no color-pair of neighbors repeats between them.</p>
+</header>
+<div class="breadcrumb"><a href="index.html">← All Explorations</a> · Combinatorics</div>
+
+<main>
+  <div class="rules-card">
+    <h3>The Rules</h3>
+    <p>Two meeples standing next to each other are having a <strong>conversation</strong>. Red next to Blue = a Red–Blue conversation. Same color next to same color also counts as a conversation.</p>
+    <p>Rule: <strong>no conversation may happen twice</strong> across both lineups. If Red–Blue are neighbors in Lineup 1, they cannot be neighbors in Lineup 2. Find valid arrangements for both!</p>
+  </div>
+
+  <div class="widget">
+    <div class="widget-hdr">
+      <div>
+        <div class="widget-title">Arrange the Meeples</div>
+        <div class="widget-sub">Pick color → click position · Firebase synced</div>
+      </div>
+    </div>
+
+    <!-- COLOR DISTRIBUTION -->
+    <div class="color-config">
+      <div class="color-config-top">
+        <div class="total-display">Total meeples: <strong id="totalDisplay">6</strong></div>
+        <div class="mode-btns">
+          <button class="mode-btn active" id="modeLineBtn">Line</button>
+          <button class="mode-btn" id="modeCircleBtn">Circle</button>
+        </div>
+        <button class="reset-btn" id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="color-rows" id="colorRows"></div>
+    </div>
+
+    <!-- PALETTE -->
+    <div class="palette-bar">
+      <span class="palette-label">Paint with:</span>
+      <div class="palette-swatches" id="paletteSwatches"></div>
+      <button class="eraser" id="eraserBtn">✕ Erase</button>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status-bar">
+      <span class="status-msg" id="statusMsg">Pick a color above, then click a circle</span>
+      <div class="conflict-chips" id="conflictChips"></div>
+    </div>
+
+    <!-- LINEUPS -->
+    <div class="lineups-wrap" id="lineupsWrap"></div>
+  </div>
+
+  <div class="section-hdr"><h2>Things to Discover</h2></div>
+  <div class="problem-card">
+    <h3>① Unique colors first</h3>
+    <p>Set each color count to 1. With 4 meeples of 4 colors, can you always find a valid Lineup 2? How many valid arrangements exist?</p>
+  </div>
+  <div class="problem-card">
+    <h3>② Add repeats</h3>
+    <p>Set Red=2, Blue=2, all others=0. Is it possible? What about Red=3, Blue=1? Which distributions are possible and which are impossible?</p>
+  </div>
+  <div class="problem-card">
+    <h3>③ Circle mode</h3>
+    <p>Switch to circle. Try Red=3, Blue=2, Green=2, Orange=2 (total 9). The book says this works — can you find a solution?</p>
+  </div>
+  <div class="problem-card">
+    <h3>④ Three lineups</h3>
+    <p>What is the fewest meeples that can meet three times? You'll definitely need more than five colors.</p>
+  </div>
+</main>
+
+<footer><span>Acton Math Circle</span><span>Combinatorics</span></footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+  authDomain:"acton-math-circle.firebaseapp.com",
+  databaseURL:"https://acton-math-circle-default-rtdb.firebaseio.com",
+  projectId:"acton-math-circle",
+  storageBucket:"acton-math-circle.firebasestorage.app",
+  messagingSenderId:"834678210381",
+  appId:"1:834678210381:web:0c3846b4cef2403e74c104"
+});
+const db      = getDatabase(app);
+const gameRef = ref(db, 'boring/game3');
+
+// ── COLORS ────────────────────────────────────────────────────
+const COLORS = [
+  {id:0, name:'Red',    hex:'#e53935'},
+  {id:1, name:'Blue',   hex:'#1e88e5'},
+  {id:2, name:'Green',  hex:'#43a047'},
+  {id:3, name:'Orange', hex:'#fb8c00'},
+  {id:4, name:'Purple', hex:'#8e24aa'},
+  {id:5, name:'Teal',   hex:'#00897b'},
+  {id:6, name:'Brown',  hex:'#6d4c41'},
+  {id:7, name:'Grey',   hex:'#546e7a'},
+];
+
+// ── ENCODE / DECODE ───────────────────────────────────────────
+// Store lineups as comma-separated strings to avoid Firebase null-dropping
+// -1 = empty slot
+function enc(arr)     { return arr.join(','); }
+function encCounts(c) { return c.join(','); }
+
+function decLineup(str, n) {
+  const result = Array(n).fill(-1);
+  if (!str) return result;
+  String(str).split(',').forEach((v,i) => {
+    if (i < n) result[i] = v === '' || v === 'null' ? -1 : Number(v);
+  });
+  return result;
+}
+
+function decCounts(str) {
+  if (!str && str !== 0) return [2,2,1,1,0,0,0,0];
+  return String(str).split(',').map(Number);
+}
+
+function totalFromCounts(counts) {
+  return counts.reduce((a,b) => a+b, 0);
+}
+
+function defaultState(counts, mode) {
+  const n = totalFromCounts(counts);
+  return {
+    counts: encCounts(counts),
+    mode,
+    lineup1: enc(Array(n).fill(-1)),
+    lineup2: enc(Array(n).fill(-1)),
+  };
+}
+
+async function push(s) { await set(gameRef, s); }
+
+// ── LOCAL ─────────────────────────────────────────────────────
+let selectedColor = null; // color id, -1 for erase, null for nothing
+let state = null;         // parsed state
+
+// ── DOM ───────────────────────────────────────────────────────
+const totalDisplay    = document.getElementById('totalDisplay');
+const colorRows       = document.getElementById('colorRows');
+const paletteSwatches = document.getElementById('paletteSwatches');
+const eraserBtn       = document.getElementById('eraserBtn');
+const statusMsg       = document.getElementById('statusMsg');
+const conflictChips   = document.getElementById('conflictChips');
+const lineupsWrap     = document.getElementById('lineupsWrap');
+
+// ── FIREBASE ──────────────────────────────────────────────────
+onValue(gameRef, snap => {
+  const d = snap.val();
+  if (!d) { push(defaultState([2,2,1,1,0,0,0,0], 'line')); return; }
+
+  const counts = decCounts(d.counts);
+  const n      = totalFromCounts(counts);
+
+  state = {
+    counts,
+    n,
+    mode:    d.mode || 'line',
+    lineup1: decLineup(d.lineup1, n),
+    lineup2: decLineup(d.lineup2, n),
+  };
+
+  document.getElementById('modeLineBtn').classList.toggle('active',   state.mode==='line');
+  document.getElementById('modeCircleBtn').classList.toggle('active', state.mode==='circle');
+  totalDisplay.textContent = n;
+
+  renderColorRows();
+  renderPalette();
+  renderLineups();
+  updateStatus();
+});
+
+// ── HELPERS ───────────────────────────────────────────────────
+function isEmpty(v)  { return v === -1 || v === null || v === undefined; }
+
+// Count how many of each color are used in a lineup
+function lineupColorUsage(lineup) {
+  const u = Array(8).fill(0);
+  lineup.forEach(v => { if (!isEmpty(v)) u[v]++; });
+  return u;
+}
+
+// Total usage across both lineups
+function totalUsage() {
+  if (!state) return Array(8).fill(0);
+  const u = Array(8).fill(0);
+  [...state.lineup1, ...state.lineup2].forEach(v => { if (!isEmpty(v)) u[v]++; });
+  return u;
+}
+
+// Max a color can be used = counts[id] per lineup × 2 lineups
+function maxUsage(id) { return (state.counts[id] || 0) * 2; }
+
+// Returns Map of pair → count of occurrences in this lineup
+function getPairCounts(lineup, isCircle) {
+  const counts = new Map();
+  const n = lineup.length;
+  function add(a, b) {
+    if (isEmpty(a) || isEmpty(b)) return;
+    const key = [a,b].sort().join('-');
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  for (let i=0; i<n-1; i++) add(lineup[i], lineup[i+1]);
+  if (isCircle && n>1) add(lineup[n-1], lineup[0]);
+  return counts;
+}
+
+function getPairs(lineup, isCircle) {
+  return new Set(getPairCounts(lineup, isCircle).keys());
+}
+
+function getConflicts() {
+  if (!state) return new Set();
+  const isCircle = state.mode === 'circle';
+  const c1 = getPairCounts(state.lineup1, isCircle);
+  const c2 = getPairCounts(state.lineup2, isCircle);
+  const out = new Set();
+  // Within-lineup duplicates (same pair twice in one lineup)
+  for (const [p, cnt] of c1) if (cnt > 1) out.add(p);
+  for (const [p, cnt] of c2) if (cnt > 1) out.add(p);
+  // Cross-lineup duplicates (same pair in both lineups)
+  for (const p of c1.keys()) if (c2.has(p)) out.add(p);
+  return out;
+}
+
+function conflictPos(lineup, conflicts) {
+  const n = lineup.length;
+  const bad = new Set();
+  function chk(i,j) {
+    if (!isEmpty(lineup[i]) && !isEmpty(lineup[j]))
+      if (conflicts.has([lineup[i],lineup[j]].sort().join('-'))) { bad.add(i); bad.add(j); }
+  }
+  for (let i=0;i<n-1;i++) chk(i,i+1);
+  if (state.mode==='circle') chk(n-1,0);
+  return bad;
+}
+
+function isComplete(lineup) { return lineup.every(v => !isEmpty(v)); }
+
+// ── COLOR ROWS ────────────────────────────────────────────────
+function renderColorRows() {
+  if (!state) return;
+  colorRows.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'color-row';
+
+    const dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = c.hex;
+    dot.textContent = c.name[0];
+
+    const name = document.createElement('div');
+    name.className = 'color-name';
+    name.textContent = c.name;
+
+    const ctrl = document.createElement('div');
+    ctrl.className = 'count-ctrl';
+
+    const dec = document.createElement('button');
+    dec.className = 'cnt-btn';
+    dec.textContent = '−';
+    dec.disabled = state.counts[i] <= 0;
+    dec.addEventListener('click', () => {
+      if (!state || state.counts[i] <= 0) return;
+      const newCounts = [...state.counts];
+      newCounts[i]--;
+      push(defaultState(newCounts, state.mode));
+    });
+
+    const val = document.createElement('span');
+    val.className = 'cnt-val' + (state.counts[i] === 0 ? ' zero' : '');
+    val.textContent = state.counts[i];
+
+    const inc = document.createElement('button');
+    inc.className = 'cnt-btn';
+    inc.textContent = '+';
+    inc.disabled = totalFromCounts(state.counts) >= 14;
+    inc.addEventListener('click', () => {
+      if (!state || totalFromCounts(state.counts) >= 14) return;
+      const newCounts = [...state.counts];
+      newCounts[i]++;
+      push(defaultState(newCounts, state.mode));
+    });
+
+    // Pips showing current count
+    const pips = document.createElement('div');
+    pips.className = 'cnt-pips';
+    for (let p=0; p<state.counts[i]; p++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip';
+      pip.style.background = c.hex;
+      pips.appendChild(pip);
+    }
+
+    ctrl.appendChild(dec);
+    ctrl.appendChild(val);
+    ctrl.appendChild(inc);
+    ctrl.appendChild(pips);
+
+    row.appendChild(dot);
+    row.appendChild(name);
+    row.appendChild(ctrl);
+    colorRows.appendChild(row);
+  });
+}
+
+// ── PALETTE ───────────────────────────────────────────────────
+function renderPalette() {
+  if (!state) return;
+  paletteSwatches.innerHTML = '';
+  const usage = totalUsage();
+
+  COLORS.forEach((c, i) => {
+    if (state.counts[i] === 0) return; // only show active colors
+    const exhausted = usage[i] >= maxUsage(i);
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (exhausted ? ' exhausted' : '') + (selectedColor === i ? ' selected' : '');
+    sw.style.background = c.hex;
+    sw.title = `${c.name} (${usage[i]}/${maxUsage(i)} used)`;
+    sw.textContent = c.name[0];
+    if (!exhausted) {
+      sw.addEventListener('click', () => {
+        selectedColor = selectedColor === i ? null : i;
+        eraserBtn.classList.remove('selected');
+        renderPalette();
+        updateStatus();
+      });
+    }
+    paletteSwatches.appendChild(sw);
+  });
+}
+
+// ── LINEUPS ───────────────────────────────────────────────────
+function renderLineups() {
+  if (!state) return;
+  const conflicts = getConflicts();
+  lineupsWrap.innerHTML = '';
+
+  ['lineup1','lineup2'].forEach((key, li) => {
+    const lineup = state[key];
+    const badPos = conflictPos(lineup, conflicts);
+    const done   = isComplete(lineup);
+    const hasBad = badPos.size > 0;
+
+    const section = document.createElement('div');
+    section.className = 'lineup-section';
+
+    // header
+    const hdr = document.createElement('div');
+    hdr.className = 'lineup-hdr';
+    const lbl = document.createElement('div');
+    lbl.className = 'lineup-lbl';
+    lbl.textContent = `Lineup ${li+1}`;
+    const badge = document.createElement('div');
+    badge.className = 'lineup-badge' + (done && !hasBad ? ' ok' : hasBad ? ' err' : '');
+    badge.textContent = done
+      ? (hasBad ? 'Conflict!' : 'Complete ✓')
+      : `${lineup.filter(v=>!isEmpty(v)).length} / ${lineup.length} placed`;
+    hdr.appendChild(lbl); hdr.appendChild(badge);
+    section.appendChild(hdr);
+
+    if (state.mode === 'line') {
+      section.appendChild(renderLine(key, lineup, badPos, conflicts));
+    } else {
+      section.appendChild(renderCircle(key, lineup, badPos, conflicts));
+    }
+    lineupsWrap.appendChild(section);
+  });
+}
+
+function renderLine(key, lineup, badPos, conflicts) {
+  const row = document.createElement('div');
+  row.className = 'meeple-row';
+  lineup.forEach((colorId, idx) => {
+    if (idx > 0) {
+      const a = lineup[idx-1], b = lineup[idx];
+      const bad = !isEmpty(a) && !isEmpty(b) && conflicts.has([a,b].sort().join('-'));
+      const conn = document.createElement('div');
+      conn.className = 'conn' + (bad ? ' conflict' : '');
+      row.appendChild(conn);
+    }
+    const m = document.createElement('div');
+    const empty = isEmpty(colorId);
+    m.className = 'meeple' + (empty ? ' empty' : '') + (badPos.has(idx) ? ' conflict' : '');
+    if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].name[0]; }
+    else { m.textContent = '?'; }
+    m.addEventListener('click', () => handleClick(key, idx));
+    row.appendChild(m);
+  });
+  return row;
+}
+
+function renderCircle(key, lineup, badPos, conflicts) {
+  const n  = lineup.length;
+  const R  = Math.max(70, Math.min(150, n * 13));
+  const MR = 22;
+  const sz = (R + MR + 18) * 2;
+  const cx = sz/2, cy = sz/2;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'circle-wrap';
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width', sz); svg.setAttribute('height', sz);
+  svg.setAttribute('viewBox', `0 0 ${sz} ${sz}`);
+
+  // Connectors
+  lineup.forEach((_, idx) => {
+    const nxt = (idx+1) % n;
+    const a1 = (2*Math.PI*idx/n) - Math.PI/2;
+    const a2 = (2*Math.PI*nxt/n) - Math.PI/2;
+    const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+    const x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
+    const ca=lineup[idx], cb=lineup[nxt];
+    const bad = !isEmpty(ca) && !isEmpty(cb) && conflicts.has([ca,cb].sort().join('-'));
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke', bad ? '#c62828' : '#d6d0c4');
+    line.setAttribute('stroke-width', bad ? '3' : '2');
+    svg.appendChild(line);
+  });
+
+  // Meeples
+  lineup.forEach((colorId, idx) => {
+    const angle = (2*Math.PI*idx/n) - Math.PI/2;
+    const x=cx+R*Math.cos(angle), y=cy+R*Math.sin(angle);
+    const empty = isEmpty(colorId);
+    const isBad = badPos.has(idx);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',x); circle.setAttribute('cy',y); circle.setAttribute('r',MR);
+    circle.setAttribute('fill', empty ? '#f0ece3' : COLORS[colorId].hex);
+    circle.setAttribute('stroke', isBad ? '#c62828' : (empty ? '#d6d0c4' : 'rgba(0,0,0,0.1)'));
+    circle.setAttribute('stroke-width', isBad ? '3' : '2');
+    circle.style.cursor = 'pointer';
+    circle.addEventListener('click', () => handleClick(key, idx));
+    svg.appendChild(circle);
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',x); txt.setAttribute('y',y+1);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
+    txt.setAttribute('font-size','14'); txt.setAttribute('font-weight','700');
+    txt.setAttribute('fill', empty ? '#bbb' : '#fff');
+    txt.setAttribute('font-family','DM Sans,sans-serif');
+    txt.style.pointerEvents = 'none';
+    txt.textContent = empty ? '?' : COLORS[colorId].name[0];
+    svg.appendChild(txt);
+  });
+
+  wrap.appendChild(svg);
+  return wrap;
+}
+
+// ── CLICK ─────────────────────────────────────────────────────
+async function handleClick(lineupKey, idx) {
+  if (!state) return;
+
+  if (selectedColor === null) {
+    showErr('Pick a color first'); return;
+  }
+
+  const lineup = [...state[lineupKey]];
+
+  if (selectedColor === -1) {
+    lineup[idx] = -1;
+  } else {
+    // Check not exhausted in this lineup
+    const lineupUsage = lineupColorUsage(lineup);
+    const current = lineup[idx];
+    const adj = current === selectedColor ? 1 : 0; // replacing same color doesn't count
+    if (lineupUsage[selectedColor] - adj >= state.counts[selectedColor]) {
+      showErr(`Can only place ${state.counts[selectedColor]} ${COLORS[selectedColor].name}(s) per lineup`);
+      return;
+    }
+    lineup[idx] = selectedColor;
+  }
+
+  const newState = {
+    counts:  encCounts(state.counts),
+    mode:    state.mode,
+    lineup1: lineupKey==='lineup1' ? enc(lineup) : enc(state.lineup1),
+    lineup2: lineupKey==='lineup2' ? enc(lineup) : enc(state.lineup2),
+  };
+  await push(newState);
+}
+
+function showErr(msg) {
+  statusMsg.textContent = msg;
+  statusMsg.className = 'status-msg err';
+  setTimeout(() => {
+    if (state && !getConflicts().size && !(isComplete(state.lineup1)&&isComplete(state.lineup2))) {
+      statusMsg.textContent = 'Pick a color above, then click a circle';
+      statusMsg.className = 'status-msg';
+    }
+  }, 2500);
+}
+
+// ── STATUS ────────────────────────────────────────────────────
+function updateStatus() {
+  if (!state) return;
+  const conflicts = getConflicts();
+  const done1 = isComplete(state.lineup1);
+  const done2 = isComplete(state.lineup2);
+
+  if (conflicts.size > 0) {
+    statusMsg.textContent = `${conflicts.size} repeated conversation${conflicts.size>1?'s':''} — shown in red`;
+    statusMsg.className = 'status-msg err';
+    conflictChips.innerHTML = [...conflicts].map(p => {
+      const [a,b] = p.split('-').map(Number);
+      return `<span class="conflict-chip">${COLORS[a].name[0]}–${COLORS[b].name[0]}</span>`;
+    }).join('');
+  } else if (done1 && done2) {
+    statusMsg.textContent = '🎉 Both lineups complete — no repeated conversations!';
+    statusMsg.className = 'status-msg ok';
+    conflictChips.innerHTML = '';
+  } else {
+    const sel = (selectedColor !== null && selectedColor !== -1) ? COLORS[selectedColor]?.name : null;
+    statusMsg.textContent = sel ? `${sel} selected — click a circle` : 'Pick a color above, then click a circle';
+    statusMsg.className = 'status-msg';
+    conflictChips.innerHTML = '';
+  }
+}
+
+// ── CONTROLS ──────────────────────────────────────────────────
+document.getElementById('modeLineBtn').addEventListener('click', () => {
+  if (!state || state.mode==='line') return;
+  push(defaultState(state.counts, 'line'));
+});
+document.getElementById('modeCircleBtn').addEventListener('click', () => {
+  if (!state || state.mode==='circle') return;
+  push(defaultState(state.counts, 'circle'));
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!state) return;
+  push(defaultState(state.counts, state.mode));
+});
+eraserBtn.addEventListener('click', () => {
+  selectedColor = selectedColor === -1 ? null : -1;
+  eraserBtn.classList.toggle('selected', selectedColor === -1);
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+  updateStatus();
+});
+</script>
+</body>
+</html>
