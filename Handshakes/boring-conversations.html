@@ -100,6 +100,22 @@
 
   .circle-wrap { display:flex; justify-content:center; padding:8px 0; }
 
+  /* GRID DIMENSION BAR */
+  .grid-dims { background:var(--pale); border-top:1px solid var(--rule); padding:10px 22px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .grid-dim-label { font-size:12px; color:#666; font-weight:500; }
+  .grid-dim-note  { font-size:12px; color:var(--err); font-weight:500; margin-left:4px; }
+
+  /* 2D GRID LAYOUT */
+  .meeple-grid { display:inline-grid; gap:0; }
+  .meeple-grid-wrap { padding:8px 0; overflow-x:auto; }
+  .grid-cell { position:relative; width:52px; height:52px; display:flex; align-items:center; justify-content:center; }
+  /* right connector */
+  .grid-cell .conn-r { position:absolute; right:-5px; top:50%; transform:translateY(-50%); width:10px; height:3px; background:var(--rule); border-radius:2px; z-index:1; }
+  .grid-cell .conn-r.conflict { background:var(--err); }
+  /* bottom connector */
+  .grid-cell .conn-b { position:absolute; bottom:-5px; left:50%; transform:translateX(-50%); width:3px; height:10px; background:var(--rule); border-radius:2px; z-index:1; }
+  .grid-cell .conn-b.conflict { background:var(--err); }
+
   /* DISCOVERY */
   .section-hdr { display:flex; align-items:center; gap:14px; margin:36px 0 16px; padding-bottom:10px; border-bottom:2px solid var(--ink); }
   .section-hdr h2 { font-family:'Fraunces',serif; font-size:20px; font-weight:600; }
@@ -147,10 +163,28 @@
         <div class="mode-btns">
           <button class="mode-btn active" id="modeLineBtn">Line</button>
           <button class="mode-btn" id="modeCircleBtn">Circle</button>
+          <button class="mode-btn" id="modeGridBtn">2D Grid</button>
         </div>
         <button class="reset-btn" id="resetBtn">↺ Reset</button>
       </div>
       <div class="color-rows" id="colorRows"></div>
+      <!-- 2D Grid dimension controls (shown only in grid mode) -->
+      <div class="grid-dims" id="gridDims" style="display:none">
+        <span class="grid-dim-label">Grid size:</span>
+        <div class="count-ctrl">
+          <button class="cnt-btn" id="rowsDec">−</button>
+          <span class="cnt-val" id="rowsVal">2</span>
+          <button class="cnt-btn" id="rowsInc">+</button>
+          <span class="grid-dim-label">rows ×</span>
+        </div>
+        <div class="count-ctrl">
+          <button class="cnt-btn" id="colsDec">−</button>
+          <span class="cnt-val" id="colsVal">3</span>
+          <button class="cnt-btn" id="colsInc">+</button>
+          <span class="grid-dim-label">cols</span>
+        </div>
+        <span class="grid-dim-note" id="gridNote"></span>
+      </div>
     </div>
 
     <!-- PALETTE -->
@@ -186,6 +220,10 @@
   <div class="problem-card">
     <h3>④ Three lineups</h3>
     <p>What is the fewest meeples that can meet three times? You'll definitely need more than five colors.</p>
+  </div>
+  <div class="problem-card">
+    <h3>⑤ 2D Grid mode</h3>
+    <p>Switch to <strong>2D Grid</strong>. Meeples can now talk to their left, right, up, and down neighbors — but <em>not</em> diagonally. Try a 2×3 grid with Red=2, Blue=2, Green=1, Orange=1. Can you fill both grids with no repeated conversation? Which grid shapes are hardest?</p>
   </div>
 </main>
 
@@ -243,14 +281,19 @@ function totalFromCounts(counts) {
   return counts.reduce((a,b) => a+b, 0);
 }
 
-function defaultState(counts, mode) {
+function defaultState(counts, mode, rows, cols) {
   const n = totalFromCounts(counts);
-  return {
+  const base = {
     counts: encCounts(counts),
     mode,
     lineup1: enc(Array(n).fill(-1)),
     lineup2: enc(Array(n).fill(-1)),
   };
+  if (mode === '2d') {
+    base.rows = rows || 2;
+    base.cols = cols || Math.ceil(n / (rows || 2));
+  }
+  return base;
 }
 
 async function push(s) { await set(gameRef, s); }
@@ -276,16 +319,37 @@ onValue(gameRef, snap => {
   const counts = decCounts(d.counts);
   const n      = totalFromCounts(counts);
 
+  const mode = d.mode || 'line';
+  const rows = (mode === '2d' && d.rows) ? Number(d.rows) : 2;
+  const cols = (mode === '2d' && d.cols) ? Number(d.cols) : Math.ceil(n / rows);
+
   state = {
     counts,
     n,
-    mode:    d.mode || 'line',
+    mode,
+    rows,
+    cols,
     lineup1: decLineup(d.lineup1, n),
     lineup2: decLineup(d.lineup2, n),
   };
 
   document.getElementById('modeLineBtn').classList.toggle('active',   state.mode==='line');
   document.getElementById('modeCircleBtn').classList.toggle('active', state.mode==='circle');
+  document.getElementById('modeGridBtn').classList.toggle('active',   state.mode==='2d');
+
+  // Show/hide grid dimension controls
+  const gridDims = document.getElementById('gridDims');
+  gridDims.style.display = state.mode === '2d' ? 'flex' : 'none';
+  if (state.mode === '2d') {
+    document.getElementById('rowsVal').textContent = state.rows;
+    document.getElementById('colsVal').textContent = state.cols;
+    const gridNote = document.getElementById('gridNote');
+    const capacity = state.rows * state.cols;
+    gridNote.textContent = capacity !== n
+      ? `⚠ Grid holds ${capacity} but total meeples = ${n}; adjust grid or counts`
+      : '';
+  }
+
   totalDisplay.textContent = n;
 
   renderColorRows();
@@ -316,7 +380,8 @@ function totalUsage() {
 function maxUsage(id) { return (state.counts[id] || 0) * 2; }
 
 // Returns Map of pair → count of occurrences in this lineup
-function getPairCounts(lineup, isCircle) {
+// mode: 'line', 'circle', or '2d'
+function getPairCounts(lineup, mode, rows, cols) {
   const counts = new Map();
   const n = lineup.length;
   function add(a, b) {
@@ -324,20 +389,35 @@ function getPairCounts(lineup, isCircle) {
     const key = [a,b].sort().join('-');
     counts.set(key, (counts.get(key) || 0) + 1);
   }
-  for (let i=0; i<n-1; i++) add(lineup[i], lineup[i+1]);
-  if (isCircle && n>1) add(lineup[n-1], lineup[0]);
+  if (mode === '2d') {
+    // Horizontal neighbors: (r,c) — (r,c+1)
+    for (let r=0; r<rows; r++) {
+      for (let c=0; c<cols-1; c++) {
+        add(lineup[r*cols+c], lineup[r*cols+c+1]);
+      }
+    }
+    // Vertical neighbors: (r,c) — (r+1,c)
+    for (let r=0; r<rows-1; r++) {
+      for (let c=0; c<cols; c++) {
+        add(lineup[r*cols+c], lineup[(r+1)*cols+c]);
+      }
+    }
+  } else {
+    for (let i=0; i<n-1; i++) add(lineup[i], lineup[i+1]);
+    if (mode === 'circle' && n>1) add(lineup[n-1], lineup[0]);
+  }
   return counts;
 }
 
-function getPairs(lineup, isCircle) {
-  return new Set(getPairCounts(lineup, isCircle).keys());
+function getPairs(lineup, mode, rows, cols) {
+  return new Set(getPairCounts(lineup, mode, rows, cols).keys());
 }
 
 function getConflicts() {
   if (!state) return new Set();
-  const isCircle = state.mode === 'circle';
-  const c1 = getPairCounts(state.lineup1, isCircle);
-  const c2 = getPairCounts(state.lineup2, isCircle);
+  const { mode, rows, cols } = state;
+  const c1 = getPairCounts(state.lineup1, mode, rows, cols);
+  const c2 = getPairCounts(state.lineup2, mode, rows, cols);
   const out = new Set();
   // Within-lineup duplicates (same pair twice in one lineup)
   for (const [p, cnt] of c1) if (cnt > 1) out.add(p);
@@ -348,14 +428,24 @@ function getConflicts() {
 }
 
 function conflictPos(lineup, conflicts) {
+  const { mode, rows, cols } = state;
   const n = lineup.length;
   const bad = new Set();
-  function chk(i,j) {
+  function chk(i, j) {
     if (!isEmpty(lineup[i]) && !isEmpty(lineup[j]))
       if (conflicts.has([lineup[i],lineup[j]].sort().join('-'))) { bad.add(i); bad.add(j); }
   }
-  for (let i=0;i<n-1;i++) chk(i,i+1);
-  if (state.mode==='circle') chk(n-1,0);
+  if (mode === '2d') {
+    for (let r=0; r<rows; r++) {
+      for (let c=0; c<cols-1; c++) chk(r*cols+c, r*cols+c+1);
+    }
+    for (let r=0; r<rows-1; r++) {
+      for (let c=0; c<cols; c++) chk(r*cols+c, (r+1)*cols+c);
+    }
+  } else {
+    for (let i=0; i<n-1; i++) chk(i, i+1);
+    if (mode === 'circle') chk(n-1, 0);
+  }
   return bad;
 }
 
@@ -486,8 +576,10 @@ function renderLineups() {
 
     if (state.mode === 'line') {
       section.appendChild(renderLine(key, lineup, badPos, conflicts));
-    } else {
+    } else if (state.mode === 'circle') {
       section.appendChild(renderCircle(key, lineup, badPos, conflicts));
+    } else {
+      section.appendChild(renderGrid(key, lineup, badPos, conflicts));
     }
     lineupsWrap.appendChild(section);
   });
@@ -513,6 +605,63 @@ function renderLine(key, lineup, badPos, conflicts) {
     row.appendChild(m);
   });
   return row;
+}
+
+function renderGrid(key, lineup, badPos, conflicts) {
+  const { rows, cols } = state;
+  const wrap = document.createElement('div');
+  wrap.className = 'meeple-grid-wrap';
+
+  const grid = document.createElement('div');
+  grid.className = 'meeple-grid';
+  grid.style.gridTemplateColumns = `repeat(${cols}, 52px)`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, 52px)`;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const idx     = r * cols + c;
+      const colorId = lineup[idx];
+      const empty   = isEmpty(colorId);
+      const isBad   = badPos.has(idx);
+
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+
+      // Meeple circle
+      const m = document.createElement('div');
+      m.className = 'meeple' + (empty ? ' empty' : '') + (isBad ? ' conflict' : '');
+      m.style.width = '42px'; m.style.height = '42px';
+      if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].name[0]; }
+      else { m.textContent = '?'; }
+      m.addEventListener('click', () => handleClick(key, idx));
+      cell.appendChild(m);
+
+      // Right connector (between this cell and its right neighbor)
+      if (c < cols - 1) {
+        const rightIdx = r * cols + c + 1;
+        const a = colorId, b = lineup[rightIdx];
+        const badConn = !isEmpty(a) && !isEmpty(b) && conflicts.has([a,b].sort().join('-'));
+        const connR = document.createElement('div');
+        connR.className = 'conn-r' + (badConn ? ' conflict' : '');
+        cell.appendChild(connR);
+      }
+
+      // Bottom connector (between this cell and its cell below)
+      if (r < rows - 1) {
+        const belowIdx = (r + 1) * cols + c;
+        const a = colorId, b = lineup[belowIdx];
+        const badConn = !isEmpty(a) && !isEmpty(b) && conflicts.has([a,b].sort().join('-'));
+        const connB = document.createElement('div');
+        connB.className = 'conn-b' + (badConn ? ' conflict' : '');
+        cell.appendChild(connB);
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+
+  wrap.appendChild(grid);
+  return wrap;
 }
 
 function renderCircle(key, lineup, badPos, conflicts) {
@@ -607,6 +756,10 @@ async function handleClick(lineupKey, idx) {
     lineup1: lineupKey==='lineup1' ? enc(lineup) : enc(state.lineup1),
     lineup2: lineupKey==='lineup2' ? enc(lineup) : enc(state.lineup2),
   };
+  if (state.mode === '2d') {
+    newState.rows = state.rows;
+    newState.cols = state.cols;
+  }
   await push(newState);
 }
 
@@ -656,9 +809,57 @@ document.getElementById('modeCircleBtn').addEventListener('click', () => {
   if (!state || state.mode==='circle') return;
   push(defaultState(state.counts, 'circle'));
 });
+document.getElementById('modeGridBtn').addEventListener('click', () => {
+  if (!state || state.mode==='2d') return;
+  const r = 2;
+  const c = Math.max(2, Math.ceil(state.n / r));
+  push(defaultState(state.counts, '2d', r, c));
+});
+
+// Grid dimension controls
+document.getElementById('rowsDec').addEventListener('click', () => {
+  if (!state || state.mode !== '2d' || state.rows <= 1) return;
+  const newRows = state.rows - 1;
+  const newCols = Math.max(1, Math.ceil(state.n / newRows));
+  push({ ...encStateForPush(), rows: newRows, cols: newCols,
+         lineup1: enc(Array(state.n).fill(-1)), lineup2: enc(Array(state.n).fill(-1)) });
+});
+document.getElementById('rowsInc').addEventListener('click', () => {
+  if (!state || state.mode !== '2d' || state.rows >= 8) return;
+  const newRows = state.rows + 1;
+  const newCols = Math.max(1, Math.ceil(state.n / newRows));
+  push({ ...encStateForPush(), rows: newRows, cols: newCols,
+         lineup1: enc(Array(state.n).fill(-1)), lineup2: enc(Array(state.n).fill(-1)) });
+});
+document.getElementById('colsDec').addEventListener('click', () => {
+  if (!state || state.mode !== '2d' || state.cols <= 1) return;
+  const newCols = state.cols - 1;
+  const newRows = Math.max(1, Math.ceil(state.n / newCols));
+  push({ ...encStateForPush(), rows: newRows, cols: newCols,
+         lineup1: enc(Array(state.n).fill(-1)), lineup2: enc(Array(state.n).fill(-1)) });
+});
+document.getElementById('colsInc').addEventListener('click', () => {
+  if (!state || state.mode !== '2d' || state.cols >= 8) return;
+  const newCols = state.cols + 1;
+  const newRows = Math.max(1, Math.ceil(state.n / newCols));
+  push({ ...encStateForPush(), rows: newRows, cols: newCols,
+         lineup1: enc(Array(state.n).fill(-1)), lineup2: enc(Array(state.n).fill(-1)) });
+});
+
+// Helper: encode current state for a push that overrides only some fields
+function encStateForPush() {
+  return {
+    counts: encCounts(state.counts),
+    mode: state.mode,
+    rows: state.rows,
+    cols: state.cols,
+    lineup1: enc(state.lineup1),
+    lineup2: enc(state.lineup2),
+  };
+}
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (!state) return;
-  push(defaultState(state.counts, state.mode));
+  push(defaultState(state.counts, state.mode, state.rows, state.cols));
 });
 eraserBtn.addEventListener('click', () => {
   selectedColor = selectedColor === -1 ? null : -1;
