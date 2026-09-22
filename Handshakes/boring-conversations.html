@@ -91,7 +91,7 @@
   .lineup-badge.err { background:#fdecea; color:var(--err); border-color:#ef9a9a; }
 
   .meeple-row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .meeple { width:46px; height:46px; border-radius:50%; cursor:pointer; border:3px solid transparent; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.13); transition:transform 0.1s; flex-shrink:0; user-select:none; }
+  .meeple { width:46px; height:46px; border-radius:50%; cursor:pointer; border:3px solid transparent; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.13); transition:transform 0.1s; flex-shrink:0; user-select:none; }
   .meeple:hover { transform:scale(1.08); }
   .meeple.empty { background:#f0ece3 !important; border-color:var(--rule) !important; color:#bbb !important; box-shadow:none; }
   .meeple.conflict { box-shadow:0 0 0 3px var(--err), 0 2px 5px rgba(0,0,0,0.13); }
@@ -215,7 +215,7 @@
   </div>
   <div class="problem-card">
     <h3>③ Circle mode</h3>
-    <p>Switch to circle. Try Red=3, Blue=2, Green=2, Orange=2 (total 9). Can you find a solution?</p>
+    <p>Switch to circle. Try Red=3, Blue=2, Green=2, Orange=2 (total 9). The book says this works — can you find a solution?</p>
   </div>
   <div class="problem-card">
     <h3>④ Three lineups</h3>
@@ -246,15 +246,23 @@ const db      = getDatabase(app);
 const gameRef = ref(db, 'boring/game3');
 
 // ── COLORS ────────────────────────────────────────────────────
+// lbl is what appears on the meeple — 1 letter where unique, 2 where needed
 const COLORS = [
-  {id:0, name:'Red',    hex:'#e53935'},
-  {id:1, name:'Blue',   hex:'#1e88e5'},
-  {id:2, name:'Green',  hex:'#43a047'},
-  {id:3, name:'Orange', hex:'#fb8c00'},
-  {id:4, name:'Purple', hex:'#8e24aa'},
-  {id:5, name:'Teal',   hex:'#00897b'},
-  {id:6, name:'Brown',  hex:'#6d4c41'},
-  {id:7, name:'Grey',   hex:'#546e7a'},
+  {id:0,  name:'Red',    lbl:'R',  hex:'#e53935'},
+  {id:1,  name:'Blue',   lbl:'B',  hex:'#1e88e5'},
+  {id:2,  name:'Green',  lbl:'G',  hex:'#43a047'},
+  {id:3,  name:'Orange', lbl:'O',  hex:'#fb8c00'},
+  {id:4,  name:'Purple', lbl:'P',  hex:'#8e24aa'},
+  {id:5,  name:'Teal',   lbl:'T',  hex:'#00897b'},
+  {id:6,  name:'Brown',  lbl:'Br', hex:'#6d4c41'},
+  {id:7,  name:'Grey',   lbl:'Gr', hex:'#546e7a'},
+  {id:8,  name:'Pink',   lbl:'Pk', hex:'#e91e8c'},
+  {id:9,  name:'Lime',   lbl:'Li', hex:'#7cb342'},
+  {id:10, name:'Navy',   lbl:'Nv', hex:'#283593'},
+  {id:11, name:'Gold',   lbl:'Go', hex:'#f9a825'},
+  {id:12, name:'Aqua',   lbl:'A',  hex:'#00acc1'},
+  {id:13, name:'Coral',  lbl:'Co', hex:'#ff7043'},
+  {id:14, name:'Violet', lbl:'V',  hex:'#6a1b9a'},
 ];
 
 // ── ENCODE / DECODE ───────────────────────────────────────────
@@ -273,7 +281,7 @@ function decLineup(str, n) {
 }
 
 function decCounts(str) {
-  if (!str && str !== 0) return [2,2,1,1,0,0,0,0];
+  if (!str && str !== 0) return [2,2,1,1,0,0,0,0,0,0,0,0,0,0,0];
   return String(str).split(',').map(Number);
 }
 
@@ -314,7 +322,7 @@ const lineupsWrap     = document.getElementById('lineupsWrap');
 // ── FIREBASE ──────────────────────────────────────────────────
 onValue(gameRef, snap => {
   const d = snap.val();
-  if (!d) { push(defaultState([2,2,1,1,0,0,0,0], 'line')); return; }
+  if (!d) { push(defaultState([2,2,1,1,0,0,0,0,0,0,0,0,0,0,0], 'line')); return; }
 
   const counts = decCounts(d.counts);
   const n      = totalFromCounts(counts);
@@ -363,15 +371,15 @@ function isEmpty(v)  { return v === -1 || v === null || v === undefined; }
 
 // Count how many of each color are used in a lineup
 function lineupColorUsage(lineup) {
-  const u = Array(8).fill(0);
+  const u = Array(15).fill(0);
   lineup.forEach(v => { if (!isEmpty(v)) u[v]++; });
   return u;
 }
 
 // Total usage across both lineups
 function totalUsage() {
-  if (!state) return Array(8).fill(0);
-  const u = Array(8).fill(0);
+  if (!state) return Array(15).fill(0);
+  const u = Array(15).fill(0);
   [...state.lineup1, ...state.lineup2].forEach(v => { if (!isEmpty(v)) u[v]++; });
   return u;
 }
@@ -462,7 +470,7 @@ function renderColorRows() {
     const dot = document.createElement('div');
     dot.className = 'color-dot';
     dot.style.background = c.hex;
-    dot.textContent = c.name[0];
+    dot.textContent = c.lbl;
 
     const name = document.createElement('div');
     name.className = 'color-name';
@@ -489,9 +497,9 @@ function renderColorRows() {
     const inc = document.createElement('button');
     inc.className = 'cnt-btn';
     inc.textContent = '+';
-    inc.disabled = totalFromCounts(state.counts) >= 14;
+    inc.disabled = totalFromCounts(state.counts) >= 20;
     inc.addEventListener('click', () => {
-      if (!state || totalFromCounts(state.counts) >= 14) return;
+      if (!state || totalFromCounts(state.counts) >= 20) return;
       const newCounts = [...state.counts];
       newCounts[i]++;
       push(defaultState(newCounts, state.mode));
@@ -532,7 +540,7 @@ function renderPalette() {
     sw.className = 'swatch' + (exhausted ? ' exhausted' : '') + (selectedColor === i ? ' selected' : '');
     sw.style.background = c.hex;
     sw.title = `${c.name} (${usage[i]}/${maxUsage(i)} used)`;
-    sw.textContent = c.name[0];
+    sw.textContent = c.lbl;
     if (!exhausted) {
       sw.addEventListener('click', () => {
         selectedColor = selectedColor === i ? null : i;
@@ -599,7 +607,7 @@ function renderLine(key, lineup, badPos, conflicts) {
     const m = document.createElement('div');
     const empty = isEmpty(colorId);
     m.className = 'meeple' + (empty ? ' empty' : '') + (badPos.has(idx) ? ' conflict' : '');
-    if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].name[0]; }
+    if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].lbl; }
     else { m.textContent = '?'; }
     m.addEventListener('click', () => handleClick(key, idx));
     row.appendChild(m);
@@ -631,7 +639,7 @@ function renderGrid(key, lineup, badPos, conflicts) {
       const m = document.createElement('div');
       m.className = 'meeple' + (empty ? ' empty' : '') + (isBad ? ' conflict' : '');
       m.style.width = '42px'; m.style.height = '42px';
-      if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].name[0]; }
+      if (!empty) { m.style.background = COLORS[colorId].hex; m.textContent = COLORS[colorId].lbl; }
       else { m.textContent = '?'; }
       m.addEventListener('click', () => handleClick(key, idx));
       cell.appendChild(m);
@@ -714,11 +722,11 @@ function renderCircle(key, lineup, badPos, conflicts) {
     const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
     txt.setAttribute('x',x); txt.setAttribute('y',y+1);
     txt.setAttribute('text-anchor','middle'); txt.setAttribute('dominant-baseline','middle');
-    txt.setAttribute('font-size','14'); txt.setAttribute('font-weight','700');
+    txt.setAttribute('font-size','12'); txt.setAttribute('font-weight','700');
     txt.setAttribute('fill', empty ? '#bbb' : '#fff');
     txt.setAttribute('font-family','DM Sans,sans-serif');
     txt.style.pointerEvents = 'none';
-    txt.textContent = empty ? '?' : COLORS[colorId].name[0];
+    txt.textContent = empty ? '?' : COLORS[colorId].lbl;
     svg.appendChild(txt);
   });
 
@@ -786,7 +794,7 @@ function updateStatus() {
     statusMsg.className = 'status-msg err';
     conflictChips.innerHTML = [...conflicts].map(p => {
       const [a,b] = p.split('-').map(Number);
-      return `<span class="conflict-chip">${COLORS[a].name[0]}–${COLORS[b].name[0]}</span>`;
+      return `<span class="conflict-chip">${COLORS[a].lbl}–${COLORS[b].lbl}</span>`;
     }).join('');
   } else if (done1 && done2) {
     statusMsg.textContent = '🎉 Both lineups complete — no repeated conversations!';
