@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Willie Wiggle Wiggle Worm: toothpick mazes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF2F4; --panel:#FFFFFF; --ink:#1F2B36; --muted:#5B6B78; --line:#9FB0BC;
+  --worm:#F8C3D1; --worm-edge:#EFA3B8; --pink:#E0457B; --wood:#9A6A33; --wood-hi:#C89A5E;
+  --good:#2F8A55; --bad:#C2413B; --warn:#B7791F; --cell:#FFFFFF; --hover:rgba(154,106,51,.35);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16202A; --panel:#1E2A36; --ink:#E7EEF3; --muted:#9FB0BC; --line:#4A5C6B;
+    --worm:#C9738E; --worm-edge:#E48FAA; --pink:#FF77A3; --wood:#D9A566; --wood-hi:#F0C58C;
+    --good:#58C483; --bad:#F07A73; --warn:#E7B04F; --cell:#243341; --hover:rgba(217,165,102,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16202A; --panel:#1E2A36; --ink:#E7EEF3; --muted:#9FB0BC; --line:#4A5C6B;
+  --worm:#C9738E; --worm-edge:#E48FAA; --pink:#FF77A3; --wood:#D9A566; --wood-hi:#F0C58C;
+  --good:#58C483; --bad:#F07A73; --warn:#E7B04F; --cell:#243341; --hover:rgba(217,165,102,.4);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 20px 40px}
+header h1{font-family:"Baloo 2","Trebuchet MS",sans-serif;font-weight:800;color:var(--pink);font-size:clamp(30px,4.4vw,50px);line-height:1;margin:6px 0 2px;letter-spacing:.5px}
+header h2{font-family:"Baloo 2","Trebuchet MS",sans-serif;font-weight:500;color:var(--pink);font-size:clamp(20px,2.6vw,30px);margin:0 0 10px;line-height:1.1}
+.lede{max-width:70ch;margin:0 0 18px;color:var(--ink)}
+.lede b{color:var(--pink)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:1fr}}
+.stage{background:var(--panel);border-radius:22px;padding:14px;position:relative}
+.stagebar{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 6px 8px}
+.pickcount{font-family:"Baloo 2",sans-serif;font-weight:700;font-size:26px;line-height:1}
+.pickcount span{color:var(--wood)}
+.status{color:var(--muted);font-size:16px;min-height:1.4em}
+.status.good{color:var(--good);font-weight:700}
+.status.bad{color:var(--bad);font-weight:700}
+svg#board{display:block;width:100%;height:auto;max-height:78vh;touch-action:none;user-select:none;-webkit-user-select:none}
+.side{display:flex;flex-direction:column;gap:14px}
+.box{background:var(--panel);border-radius:16px;padding:14px 16px}
+.box h3{font-family:"Baloo 2",sans-serif;font-weight:700;font-size:20px;margin:0 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;margin:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+button,select{font:inherit;font-size:16px;color:var(--ink);background:transparent;border:2px solid var(--line);border-radius:12px;padding:7px 12px;cursor:pointer;min-height:40px}
+button:hover{border-color:var(--ink)}
+button.primary{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:700}
+button.primary:hover{filter:brightness(1.07)}
+button:disabled{opacity:.45;cursor:default}
+select{background:var(--panel);width:100%}
+button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--pink);outline-offset:2px}
+.stepper{display:inline-flex;align-items:center;gap:6px}.stepper label{align-self:center}
+.stepper output{font-family:"Baloo 2",sans-serif;font-weight:700;font-size:22px;min-width:1.4em;text-align:center}
+.stepper button{width:40px;padding:0;font-weight:700}
+.sizes{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.sizes label{color:var(--muted);font-size:15px;margin-right:2px}
+.hint{color:var(--muted);font-size:15px;margin:8px 0 0}
+.result{margin-top:10px;font-size:17px}
+.verdict{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:26px;line-height:1.1;margin:2px 0 4px}
+.verdict.good{color:var(--good)} .verdict.bad{color:var(--bad)} .verdict.warn{color:var(--warn)}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:var(--pink)}
+details{border-top:1px dashed var(--line);padding-top:10px;margin-top:10px}
+details:first-of-type{border-top:0;margin-top:0;padding-top:0}
+summary{cursor:pointer;font-weight:700}
+details p,details li{font-size:15px}
+details ul{padding-left:20px;margin:6px 0}
+.hidden{display:none!important}
+.live{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);margin:0 0 10px}
+.live i{width:10px;height:10px;border-radius:50%;background:var(--warn);display:inline-block}
+.live.on i{background:var(--good)}
+.live.off i{background:var(--bad)}
+footer{color:var(--muted);font-size:14px;margin-top:22px;max-width:75ch}
+@media (prefers-reduced-motion:no-preference){ .worm-live{transition:opacity .15s} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Willie Wiggle Wiggle Worm</h1>
+  <h2 id="subtitle">Toothpick mazes</h2>
+  <div class="live" id="live"><i></i><span id="liveText">Connecting…</span></div>
+  <p class="lede" id="lede"></p>
+</header>
+
+<div class="main">
+  <section class="stage" aria-label="Egg carton">
+    <div class="stagebar">
+      <div class="pickcount"><span id="nPicks">0</span> toothpicks</div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </div>
+    <svg id="board" xmlns="http://www.w3.org/2000/svg" aria-label="Egg carton grid. Click lines between squares to place toothpicks."></svg>
+  </section>
+
+  <aside class="side">
+    <div class="box">
+      <h3>Puzzle</h3>
+      <div class="row" style="margin-bottom:10px">
+        <div class="seg" role="group" aria-label="Puzzle type">
+          <button id="modePath" aria-pressed="true">Curl up (line)</button>
+          <button id="modeLoop" aria-pressed="false">Suck his tail (loop)</button>
+        </div>
+      </div>
+      <div class="sizes">
+        <div class="stepper"><label>Rows</label><button data-d="-1" data-k="R" aria-label="Fewer rows">−</button><output id="oR">5</output><button data-d="1" data-k="R" aria-label="More rows">+</button></div>
+        <div class="stepper"><label>Columns</label><button data-d="-1" data-k="C" aria-label="Fewer columns">−</button><output id="oC">5</output><button data-d="1" data-k="C" aria-label="More columns">+</button></div>
+      </div>
+      <div style="margin-top:12px">
+        <select id="preset" aria-label="Load a sample carton">
+          <option value="">Load a sample carton…</option>
+          <option value="p522">5×5 with 7 toothpicks</option>
+          <option value="A">4×4 carton A</option>
+          <option value="B">4×4 carton B</option>
+          <option value="C">4×4 carton C</option>
+          <option value="D">4×4 carton D</option>
+          <option value="E">4×4 carton E</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Your hands</h3>
+      <div class="seg" role="group" aria-label="Tool">
+        <button id="toolPick" aria-pressed="true">Place toothpicks</button>
+        <button id="toolWorm" aria-pressed="false">Draw Willie</button>
+      </div>
+      <p class="hint" id="toolHint"></p>
+      <div class="row" style="margin-top:10px">
+        <button id="clearPicks">Remove toothpicks</button>
+        <button id="clearWorm">Erase Willie</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Check the maze</h3>
+      <div class="row">
+        <button class="primary" id="check">Count Willie’s ways</button>
+        <button id="stop" class="hidden">Stop</button>
+      </div>
+      <div class="bar hidden" id="barWrap"><i id="bar"></i></div>
+      <div class="result" id="result"></div>
+      <div class="row hidden" id="browse" style="margin-top:8px">
+        <button id="prev" aria-label="Previous way">‹</button>
+        <button id="show">Show a way</button>
+        <button id="next" aria-label="Next way">›</button>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<footer>A way counts once no matter which end is Willie’s head, and a loop counts once no matter where he starts. The checker stops after 100 ways, since past that point the only news is “too many.” Toothpicks, Willie, board size and puzzle type are shared live with everyone on this page; each person’s checker results stay on their own screen.</footer>
+</div>
+
+<script type="module">
+// Willie solver: counts undirected Hamiltonian paths (worm) or cycles (loop)
+// on an R x C grid with walls ("toothpicks"). Time-sliced so the page stays responsive.
+function buildAdj(R, C, walls) {
+  const N = R * C, adj = [];
+  for (let i = 0; i < N; i++) {
+    const r = (i / C) | 0, c = i % C, a = [];
+    if (c + 1 < C && !walls.has('V' + r + ',' + c)) a.push(i + 1);
+    if (r + 1 < R && !walls.has('H' + r + ',' + c)) a.push(i + C);
+    if (c - 1 >= 0 && !walls.has('V' + r + ',' + (c - 1))) a.push(i - 1);
+    if (r - 1 >= 0 && !walls.has('H' + (r - 1) + ',' + c)) a.push(i - C);
+    adj.push(a);
+  }
+  return adj;
+}
+
+function makeSolver(R, C, walls, loop, cap) {
+  const N = R * C, adj = buildAdj(R, C, walls);
+  const color = i => (((i / C) | 0) + (i % C)) & 1;
+  const sols = [];
+  let starts = [];
+  let done = false, steps = 0;
+  if (loop) {
+    starts = (N % 2 === 1) ? [] : [0];
+  } else if (N % 2 === 1) {
+    // odd cell count: both ends must be on the majority colour (colour of cell 0)
+    for (let i = 0; i < N; i++) if (color(i) === color(0)) starts.push(i);
+  } else {
+    for (let i = 0; i < N; i++) starts.push(i);
+  }
+  let si = 0;
+  const vis = new Uint8Array(N), path = new Int32Array(N), nxt = new Int32Array(N);
+  const seen = new Uint8Array(N), q = new Int32Array(N);
+  let depth = -1, start = -1;
+
+  function feasible(cur, k) { // path[0..k] filled, cur = path[k]
+    const remaining = N - (k + 1);
+    if (remaining === 0) return true;
+    let anyNext = false;
+    for (const u of adj[cur]) if (!vis[u]) { anyNext = true; break; }
+    if (!anyNext) return false;
+    if (loop) {
+      let startOk = false;
+      for (const u of adj[start]) if (!vis[u]) { startOk = true; break; }
+      if (!startOk) return false;
+    }
+    let ones = 0, farOnes = 0, first = -1;
+    for (let v = 0; v < N; v++) {
+      if (vis[v]) continue;
+      if (first < 0) first = v;
+      let d = 0, nearCur = false;
+      for (const u of adj[v]) {
+        if (!vis[u]) d++;
+        else if (u === cur) { d++; nearCur = true; }
+        else if (loop && u === start) d++;
+      }
+      if (loop) { if (d < 2) return false; }
+      else {
+        if (d === 0) return false;
+        if (d === 1) { ones++; if (!nearCur) farOnes++; if (ones > 2 || farOnes > 1) return false; }
+      }
+    }
+    // connectivity of unvisited cells
+    seen.fill(0); let h = 0, t = 0, cnt = 0;
+    q[t++] = first; seen[first] = 1;
+    while (h < t) { const v = q[h++]; cnt++; for (const u of adj[v]) if (!vis[u] && !seen[u]) { seen[u] = 1; q[t++] = u; } }
+    return cnt === remaining;
+  }
+
+  function beginStart() {
+    while (si < starts.length) {
+      start = starts[si++];
+      vis.fill(0); vis[start] = 1; path[0] = start; nxt[0] = 0; depth = 0;
+      if (N === 1 || feasible(start, 0)) return true;
+    }
+    return false;
+  }
+
+  function run(budgetMs) {
+    const t0 = Date.now();
+    if (depth < 0 && !done) { if (!beginStart()) { done = true; } }
+    while (!done) {
+      if ((++steps & 1023) === 0 && Date.now() - t0 > budgetMs) return false;
+      const cur = path[depth];
+      if (depth === N - 1) {
+        let ok;
+        if (loop) ok = N > 2 && adj[cur].includes(start) && path[1] < path[N - 1];
+        else ok = path[0] < path[N - 1] || N === 1;
+        if (ok) { sols.push(Array.from(path)); if (sols.length >= cap) { done = true; break; } }
+        vis[cur] = 0; depth--;
+      } else {
+        const a = adj[cur]; let moved = false;
+        while (nxt[depth] < a.length) {
+          const n = a[nxt[depth]++];
+          if (vis[n]) continue;
+          vis[n] = 1; path[depth + 1] = n;
+          if (feasible(n, depth + 1)) { depth++; nxt[depth] = 0; moved = true; break; }
+          vis[n] = 0;
+        }
+        if (!moved) { vis[cur] = 0; depth--; }
+      }
+      if (depth < 0) { if (!beginStart()) done = true; }
+    }
+    return true;
+  }
+  return { run, sols, get capped() { return sols.length >= cap; }, get progress() { return starts.length ? Math.min(1, (si - 1) / starts.length) : 1; } };
+}
+
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, set, update, onValue, push, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyA-IpjWXYTJ7xzeKX1VocSok-qO8Glcet8",
+  authDomain:        "acton-math-circle.firebaseapp.com",
+  databaseURL:       "https://acton-math-circle-default-rtdb.firebaseio.com",
+  projectId:         "acton-math-circle",
+  storageBucket:     "acton-math-circle.firebasestorage.app",
+  messagingSenderId: "834678210381",
+  appId:             "1:834678210381:web:0c3846b4cef2403e74c104"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+// Optional ?room=xyz in the address gives a separate board; default is one shared board.
+const ROOM = (new URLSearchParams(location.search).get('room') || 'main').replace(/[^A-Za-z0-9_-]/g,'').slice(0,40) || 'main';
+const gameRef = ref(db, 'willie/' + ROOM + '/game');
+const presRef = ref(db, 'willie/' + ROOM + '/presence');
+
+const MIN=2, MAX=8, S=60, PAD=24, CAP=100;
+const st={R:5,C:5,loop:false,tool:'pick',walls:new Set(),worm:[],sols:null,solIdx:-1,showing:false,job:null,loaded:false,sig:''};
+const $=id=>document.getElementById(id);
+const board=$('board'), NS='http://www.w3.org/2000/svg';
+
+const PRESETS={
+  p522:{R:5,C:5,w:['V1,1','V2,1','V2,2','H0,4','H1,3','H3,0','H3,3']},
+  A:{R:4,C:4,w:['H0,0','V0,2']}, B:{R:4,C:4,w:['V0,0','V0,2']},
+  C:{R:4,C:4,w:['V0,2','H2,0']}, D:{R:4,C:4,w:['V0,2','V3,0']}, E:{R:4,C:4,w:['V0,2','V3,2']}
+};
+
+// ---------- database encoding ----------
+// walls stored as a map { "V1_1": true } so two people toggling different toothpicks never overwrite each other.
+const toDb = k => k.replace(',','_');
+const fromDb = k => k.replace('_',',');
+const wormStr = w => w.join(',');
+const wallsObj = set => { const o={}; for(const k of set) o[toDb(k)]=true; return o; };
+function parseWorm(s, N){
+  if(typeof s!=='string'||!s.length) return [];
+  const a=s.split(',').map(Number);
+  return a.every(x=>Number.isInteger(x)&&x>=0&&x<N)?a:[];
+}
+function writeState(obj){ update(gameRef, obj).catch(err=>setLive('off','Not saved: '+err.message)); }
+
+// ---------- live connection + presence ----------
+function setLive(cls,text){ $('live').className='live '+cls; $('liveText').textContent=text; }
+let peers=1, connected=false;
+onValue(ref(db,'.info/connected'), snap=>{
+  connected = snap.val()===true;
+  if(connected){
+    const me=push(presRef); onDisconnect(me).remove(); set(me,true);
+  }
+  showLive();
+});
+onValue(presRef, snap=>{ peers = snap.exists()? Object.keys(snap.val()).length : 1; showLive(); });
+function showLive(){
+  if(!connected) setLive('off','Offline — changes will sync when the connection returns');
+  else setLive('on', `Live · ${peers} ${peers===1?'person':'people'} on this board${ROOM!=='main'?' (room '+ROOM+')':''}`);
+}
+
+// ---------- incoming state ----------
+let dragging=false;
+onValue(gameRef, snap=>{
+  const d=snap.val();
+  if(!d||!d.R){ // first ever use: seed with the sample carton
+    set(gameRef,{R:5,C:5,loop:false,walls:wallsObj(new Set(PRESETS.p522.w)),worm:''});
+    return;
+  }
+  st.R=Math.min(MAX,Math.max(MIN,Number(d.R)||5));
+  st.C=Math.min(MAX,Math.max(MIN,Number(d.C)||5));
+  st.loop=(d.loop===true||d.loop==='true');
+  st.walls=new Set(d.walls?Object.keys(d.walls).map(fromDb):[]);
+  if(!dragging) st.worm=parseWorm(d.worm, st.R*st.C);
+  const sig=st.R+'|'+st.C+'|'+st.loop+'|'+[...st.walls].sort().join(';');
+  if(sig!==st.sig){ st.sig=sig; invalidate(); }
+  st.loaded=true;
+  $('modePath').setAttribute('aria-pressed',!st.loop);$('modeLoop').setAttribute('aria-pressed',st.loop);
+  copy(); draw();
+}, err=>setLive('off','Cannot read the database: '+err.message));
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+const cx=c=>PAD+c*S+S/2, cy=r=>PAD+r*S+S/2;
+const idx=(r,c)=>r*st.C+c, rc=i=>[(i/st.C)|0,i%st.C];
+function wallKey(a,b){const[ra,ca]=rc(a),[rb,cb]=rc(b);if(ra===rb)return 'V'+ra+','+Math.min(ca,cb);return 'H'+Math.min(ra,rb)+','+ca;}
+function adjacent(a,b){const[ra,ca]=rc(a),[rb,cb]=rc(b);return Math.abs(ra-rb)+Math.abs(ca-cb)===1;}
+function open(a,b){return adjacent(a,b)&&!st.walls.has(wallKey(a,b));}
+
+function copy(){
+  $('subtitle').textContent=st.loop?'Sucking his tail':'Toothpick mazes';
+  $('lede').innerHTML=st.loop
+    ?'Willie can’t suck his thumb to fall asleep, so sometimes he curls up in a loop and sucks his tail. He lies in every square exactly once and his head ends up next to his tail. Place the <b>fewest toothpicks</b> so there is <b>exactly one loop</b> he can make.'
+    :'Willie lies down in the egg carton, filling every square exactly once, moving only between squares that share a side. Toothpicks block his way. Place the <b>fewest toothpicks</b> so Willie has <b>exactly one way</b> to curl up. Swapping his head and tail doesn’t count as a new way, so ways always come in pairs.';
+  $('toolHint').textContent=st.tool==='pick'
+    ?'Click a line between two squares to add or remove a toothpick.'
+    :'Drag through the squares to lay Willie down. Drag back to back him up. Tap a square on his body to cut him there.';
+}
+
+function draw(){
+  board.innerHTML='';
+  const W=st.C*S+2*PAD,H=st.R*S+2*PAD;
+  board.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const cs=getComputedStyle(document.documentElement);
+  const v=n=>cs.getPropertyValue(n).trim();
+  el('rect',{x:PAD,y:PAD,width:st.C*S,height:st.R*S,fill:v('--cell'),rx:4},board);
+  const g=el('g',{stroke:v('--line'),'stroke-width':1.5},board);
+  for(let c=0;c<=st.C;c++)el('line',{x1:PAD+c*S,y1:PAD,x2:PAD+c*S,y2:PAD+st.R*S},g);
+  for(let r=0;r<=st.R;r++)el('line',{x1:PAD,y1:PAD+r*S,x2:PAD+st.C*S,y2:PAD+r*S},g);
+  el('rect',{x:PAD,y:PAD,width:st.C*S,height:st.R*S,fill:'none',stroke:v('--ink'),'stroke-width':2.5,rx:4},board);
+
+  // worm (drawn or solution)
+  const path=(st.showing&&st.sols&&st.sols[st.solIdx])?st.sols[st.solIdx]:st.worm;
+  const closed=st.loop&&path.length===st.R*st.C&&path.length>2&&open(path[0],path[path.length-1]);
+  if(path.length){
+    const pts=path.map(i=>{const[r,c]=rc(i);return cx(c)+','+cy(r);});
+    const d='M'+pts.join(' L')+(closed?' Z':'');
+    const wg=el('g',{class:'worm-live','pointer-events':'none'},board);
+    el('path',{d,fill:'none',stroke:v('--worm-edge'),'stroke-width':S*0.66,'stroke-linecap':'round','stroke-linejoin':'round'},wg);
+    el('path',{d,fill:'none',stroke:v('--worm'),'stroke-width':S*0.58,'stroke-linecap':'round','stroke-linejoin':'round'},wg);
+    // tail stripes
+    const t=path[0],[tr,tc]=rc(t);
+    let dx=0,dy=0;
+    if(path.length>1&&!closed){const[nr,nc]=rc(path[1]);dx=tc-nc;dy=tr-nr;}
+    if(!closed){for(let k=-1;k<=1;k++){
+      const ox=cx(tc)+dx*S*0.12, oy=cy(tr)+dy*S*0.12;
+      if(dx!==0) el('line',{x1:ox+k*7*(dx),y1:oy-S*0.14,x2:ox+k*7*(dx),y2:oy+S*0.14,stroke:v('--pink'),'stroke-width':3.5,'stroke-linecap':'round',opacity:.75},wg);
+      else if(dy!==0) el('line',{x1:ox-S*0.14,y1:oy+k*7*(dy),x2:ox+S*0.14,y2:oy+k*7*(dy),stroke:v('--pink'),'stroke-width':3.5,'stroke-linecap':'round',opacity:.75},wg);
+    }}
+    // head with eyes
+    const h=path[path.length-1],[hr,hc]=rc(h);
+    let fx=1,fy=0;
+    if(path.length>1){const[pr,pc]=rc(path[path.length-2]);fx=hc-pc;fy=hr-pr;}
+    if(closed){const[tr2,tc2]=rc(path[0]);fx=tc2-hc;fy=tr2-hr;}
+    const px=-fy,py=fx, hx=cx(hc)+fx*S*0.1, hy=cy(hr)+fy*S*0.1;
+    for(const s of [-1,1]){
+      el('circle',{cx:hx+px*s*7,cy:hy+py*s*7,r:6.5,fill:'#fff'},wg);
+      el('circle',{cx:hx+px*s*7+fx*1.6,cy:hy+py*s*7+fy*1.6,r:3.2,fill:'#1F2B36'},wg);
+    }
+  }
+
+  // toothpicks + hit areas
+  const hits=el('g',{},board), picks=el('g',{'pointer-events':'none'},board);
+  function edge(key,x1,y1,x2,y2){
+    const on=st.walls.has(key);
+    if(on){
+      el('line',{x1,y1,x2,y2,stroke:v('--wood'),'stroke-width':7,'stroke-linecap':'round'},picks);
+      el('line',{x1,y1,x2,y2,stroke:v('--wood-hi'),'stroke-width':2,'stroke-linecap':'round',opacity:.8},picks);
+    }
+    if(st.tool==='pick'){
+      const hl=el('line',{x1,y1,x2,y2,stroke:'transparent','stroke-width':20,'stroke-linecap':'butt',style:'cursor:pointer','data-k':key},hits);
+      hl.addEventListener('pointerenter',()=>{if(!st.walls.has(key))hl.setAttribute('stroke',v('--hover'));});
+      hl.addEventListener('pointerleave',()=>hl.setAttribute('stroke','transparent'));
+    }
+  }
+  const inset=4;
+  for(let r=0;r<st.R;r++)for(let c=0;c<st.C-1;c++){const x=PAD+(c+1)*S;edge('V'+r+','+c,x,PAD+r*S+inset,x,PAD+(r+1)*S-inset);}
+  for(let r=0;r<st.R-1;r++)for(let c=0;c<st.C;c++){const y=PAD+(r+1)*S;edge('H'+r+','+c,PAD+c*S+inset,y,PAD+(c+1)*S-inset,y);}
+  const dots=el('g',{fill:v('--ink'),'pointer-events':'none'},board);
+  for(let r=0;r<=st.R;r++)for(let c=0;c<=st.C;c++)el('circle',{cx:PAD+c*S,cy:PAD+r*S,r:3.6},dots);
+
+  $('nPicks').textContent=st.walls.size;
+  $('oR').textContent=st.R;$('oC').textContent=st.C;
+  wormStatus(path,closed);
+}
+
+function wormStatus(path,closed){
+  const s=$('status');s.className='status';
+  if(st.showing&&st.sols&&st.sols.length){s.textContent=`Showing way ${st.solIdx+1} of ${st.sols.length}${st.sols.length>=CAP?'+':''}`;return;}
+  const N=st.R*st.C;
+  if(!path.length){s.textContent=st.tool==='worm'?'Start dragging on any square.':'';return;}
+  if(path.length<N){s.textContent=`Willie fills ${path.length} of ${N} squares`;return;}
+  if(!st.loop){s.textContent='Willie is curled up. Every square used!';s.classList.add('good');return;}
+  if(closed){s.textContent='Willie is sucking his tail!';s.classList.add('good');}
+  else{s.textContent='Every square used, but his head can’t reach his tail.';s.classList.add('bad');}
+}
+
+function cellAt(evt){
+  const pt=board.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;
+  const p=pt.matrixTransform(board.getScreenCTM().inverse());
+  const c=Math.floor((p.x-PAD)/S), r=Math.floor((p.y-PAD)/S);
+  if(r<0||c<0||r>=st.R||c>=st.C)return -1;
+  // ignore points too close to borders while dragging to avoid corner skipping
+  return idx(r,c);
+}
+
+board.addEventListener('pointerdown',e=>{
+  if(!st.loaded)return;
+  if(st.tool==='pick'){
+    const k=e.target.getAttribute&&e.target.getAttribute('data-k');
+    if(k){toggleWall(k);}
+    return;
+  }
+  const i=cellAt(e); if(i<0)return;
+  hideSolution();
+  const w=st.worm, pos=w.indexOf(i);
+  if(!w.length){w.push(i);}
+  else if(pos===w.length-1){}
+  else if(pos>=0){w.length=pos+1;}
+  else if(open(w[w.length-1],i)){w.push(i);}
+  else{st.worm=[i];}
+  dragging=true; board.setPointerCapture(e.pointerId); draw(); writeState({worm:wormStr(st.worm)});
+});
+board.addEventListener('pointermove',e=>{
+  if(!dragging||st.tool!=='worm')return;
+  const i=cellAt(e); if(i<0)return;
+  const w=st.worm, last=w[w.length-1];
+  if(i===last)return;
+  if(w.length>1&&i===w[w.length-2]){w.pop();draw();writeState({worm:wormStr(w)});return;}
+  if(w.indexOf(i)<0&&open(last,i)){w.push(i);draw();writeState({worm:wormStr(w)});}
+});
+const endDrag=()=>{if(dragging){dragging=false;writeState({worm:wormStr(st.worm)});}};
+board.addEventListener('pointerup',endDrag);board.addEventListener('pointercancel',endDrag);
+
+function toggleWall(k){
+  const had=st.walls.has(k);
+  if(had)st.walls.delete(k);else st.walls.add(k);
+  const upd={['walls/'+toDb(k)]: had?null:true};
+  // cut Willie where a toothpick now blocks him
+  const before=st.worm.length;
+  for(let j=1;j<st.worm.length;j++){if(!open(st.worm[j-1],st.worm[j])){st.worm.length=j;break;}}
+  if(st.worm.length!==before) upd.worm=wormStr(st.worm);
+  draw(); writeState(upd);
+}
+
+function invalidate(){
+  if(st.job){st.job.cancel=true;st.job=null;}
+  st.sols=null;st.solIdx=-1;st.showing=false;
+  $('result').innerHTML='';$('browse').classList.add('hidden');
+  $('barWrap').classList.add('hidden');$('stop').classList.add('hidden');$('check').disabled=false;
+}
+function hideSolution(){if(st.showing){st.showing=false;$('show').textContent='Show a way';}}
+
+function resize(k,d){
+  const nv=st[k]+d; if(nv<MIN||nv>MAX)return;
+  $('preset').value='';
+  set(gameRef,{R:k==='R'?nv:st.R, C:k==='C'?nv:st.C, loop:st.loop, walls:null, worm:''});
+}
+document.querySelectorAll('.stepper button').forEach(b=>b.addEventListener('click',()=>resize(b.dataset.k,+b.dataset.d)));
+
+function setMode(loop){if(loop!==st.loop)writeState({loop});}
+$('modePath').onclick=()=>setMode(false);$('modeLoop').onclick=()=>setMode(true);
+function setTool(t){st.tool=t;$('toolPick').setAttribute('aria-pressed',t==='pick');$('toolWorm').setAttribute('aria-pressed',t==='worm');hideSolution();copy();draw();}
+$('toolPick').onclick=()=>setTool('pick');$('toolWorm').onclick=()=>setTool('worm');
+$('clearPicks').onclick=()=>{$('preset').value='';writeState({walls:null});};
+$('clearWorm').onclick=()=>{hideSolution();writeState({worm:''});};
+$('preset').onchange=e=>{
+  const p=PRESETS[e.target.value]; if(!p)return;
+  set(gameRef,{R:p.R,C:p.C,loop:false,walls:wallsObj(new Set(p.w)),worm:''});
+};
+
+$('check').onclick=()=>{
+  invalidate();
+  const job={cancel:false}; st.job=job;
+  const solver=makeSolver(st.R,st.C,new Set(st.walls),st.loop,CAP);
+  $('check').disabled=true;$('stop').classList.remove('hidden');$('barWrap').classList.remove('hidden');
+  $('result').innerHTML='<div class="status">Searching every way Willie could lie…</div>';
+  const t0=performance.now();
+  function tick(){
+    if(job.cancel)return;
+    const finished=solver.run(30);
+    $('bar').style.width=(solver.progress*100).toFixed(0)+'%';
+    if(!finished){$('result').innerHTML=`<div class="status">Searching… ${solver.sols.length} found so far</div>`;setTimeout(tick,0);return;}
+    st.job=null;$('check').disabled=false;$('stop').classList.add('hidden');$('barWrap').classList.add('hidden');
+    report(solver.sols,false,performance.now()-t0);
+  }
+  $('stop').onclick=()=>{job.cancel=true;st.job=null;$('check').disabled=false;$('stop').classList.add('hidden');$('barWrap').classList.add('hidden');report(solver.sols,true);};
+  setTimeout(tick,0);
+};
+
+function report(sols,stopped){
+  st.sols=sols; st.solIdx=0; st.showing=false; $('show').textContent='Show a way';
+  const n=sols.length, unit=st.loop?(n===1?'loop':'loops'):(n===1?'pair of ways':'pairs of ways');
+  let v,cls,msg;
+  if(stopped){v=`Stopped: ${n}+ found`;cls='warn';msg='The search was stopped before it finished, so there may be more.';}
+  else if(n===0){v='Impossible';cls='bad';msg=st.loop?'Willie can’t make any loop in this carton.':'Willie can’t curl up at all. Too many toothpicks, or badly placed ones.';}
+  else if(n===1){v=st.loop?'Exactly one loop':'Exactly one pair';cls='good';msg=`Solved with ${st.walls.size} toothpick${st.walls.size===1?'':'s'}. Can you do it with fewer?`;}
+  else if(n>=CAP){v=`At least ${CAP} ${unit}`;cls='bad';msg='Willie has far too much freedom. Add toothpicks.';}
+  else{v=`${n} ${unit}`;cls='bad';msg=st.loop?'Willie has more than one loop. Find another and block it.':'Willie still has more than one way. Find another and block it.';}
+  $('result').innerHTML=`<div class="verdict ${cls}">${v}</div><div>${msg}</div>`;
+  $('browse').classList.toggle('hidden',n===0);
+  draw();
+}
+$('show').onclick=()=>{if(!st.sols||!st.sols.length)return;st.showing=!st.showing;$('show').textContent=st.showing?'Hide':'Show a way';draw();};
+$('next').onclick=()=>{if(!st.sols||!st.sols.length)return;st.showing=true;$('show').textContent='Hide';st.solIdx=(st.solIdx+1)%st.sols.length;draw();};
+$('prev').onclick=()=>{if(!st.sols||!st.sols.length)return;st.showing=true;$('show').textContent='Hide';st.solIdx=(st.solIdx-1+st.sols.length)%st.sols.length;draw();};
+
+copy(); draw();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+</script>
+</body>
+</html>
